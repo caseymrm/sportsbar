@@ -95,9 +95,51 @@ type scoreboardCompetition struct {
 }
 
 type scoreboardCompetitor struct {
-	HomeAway string   `json:"homeAway"`
-	Score    string   `json:"score"`
-	Team     EspnTeam `json:"team"`
+	HomeAway string    `json:"homeAway"`
+	Score    espnScore `json:"score"`
+	Winner   bool      `json:"winner"`
+	Team     EspnTeam  `json:"team"`
+}
+
+// espnScore handles two score formats: the scoreboard endpoint sends a plain
+// string ("107"), while the team-schedule endpoint sends an object
+// ({"value":107.0,"displayValue":"107"}). One type, one decoder, both paths.
+type espnScore int
+
+func (s *espnScore) UnmarshalJSON(b []byte) error {
+	if len(b) == 0 || string(b) == "null" {
+		*s = 0
+		return nil
+	}
+	var str string
+	if err := json.Unmarshal(b, &str); err == nil {
+		if str == "" {
+			*s = 0
+			return nil
+		}
+		if n, err := strconv.Atoi(str); err == nil {
+			*s = espnScore(n)
+			return nil
+		}
+		*s = 0
+		return nil
+	}
+	var obj struct {
+		Value        float64 `json:"value"`
+		DisplayValue string  `json:"displayValue"`
+	}
+	if err := json.Unmarshal(b, &obj); err == nil {
+		if obj.DisplayValue != "" {
+			if n, err := strconv.Atoi(obj.DisplayValue); err == nil {
+				*s = espnScore(n)
+				return nil
+			}
+		}
+		*s = espnScore(int(obj.Value))
+		return nil
+	}
+	*s = 0
+	return nil
 }
 
 var espnHTTP = &http.Client{Timeout: 10 * time.Second}
@@ -157,8 +199,8 @@ func gameFromEvent(league League, ev scoreboardEvent) (Game, bool) {
 		Start:       ev.Date.Time,
 		Home:        home.Team,
 		Away:        away.Team,
-		HomeScore:   parseScore(home.Score),
-		AwayScore:   parseScore(away.Score),
+		HomeScore:   int(home.Score),
+		AwayScore:   int(away.Score),
 		Clock:       ev.Status.DisplayClock,
 		Period:      ev.Status.Period,
 		ShortDetail: ev.Status.Type.ShortDetail,
@@ -176,17 +218,6 @@ func gameFromEvent(league League, ev scoreboardEvent) (Game, bool) {
 	return g, true
 }
 
-func parseScore(s string) int {
-	if s == "" {
-		return 0
-	}
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return 0
-	}
-	return n
-}
-
 type teamsResponse struct {
 	Sports []struct {
 		Leagues []struct {
@@ -195,6 +226,73 @@ type teamsResponse struct {
 			} `json:"teams"`
 		} `json:"leagues"`
 	} `json:"sports"`
+}
+
+// scheduleResponse is the team-schedule shape — the same event/competition
+// structure as the scoreboard, but no live status state field (we derive
+// state from the winner flag and the date instead).
+type scheduleResponse struct {
+	Events []scoreboardEvent `json:"events"`
+}
+
+// FetchTeamSchedule returns the team's known games for the current season,
+// ordered by date. State is derived from the winner field plus date, since
+// the schedule endpoint omits status.type.state.
+func FetchTeamSchedule(league League, teamID string) ([]Game, error) {
+	u := fmt.Sprintf("https://site.api.espn.com/apis/site/v2/sports/%s/%s/teams/%s/schedule",
+		league.Sport, league.Key, teamID)
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", "sportsbar/0.1 (+https://github.com/caseymrm/sportsbar)")
+	resp, err := espnHTTP.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("espn schedule %s/%s: %s", league.Key, teamID, resp.Status)
+	}
+	var sr scheduleResponse
+	if err := json.NewDecoder(resp.Body).Decode(&sr); err != nil {
+		return nil, fmt.Errorf("decode espn schedule %s/%s: %w", league.Key, teamID, err)
+	}
+	now := time.Now()
+	games := make([]Game, 0, len(sr.Events))
+	for _, ev := range sr.Events {
+		g, ok := gameFromEvent(league, ev)
+		if !ok {
+			continue
+		}
+		// Schedule events have no live state — derive from winner flag and date.
+		// (gameFromEvent set state from the absent status field, defaulting to
+		// Upcoming. Override here with a more accurate inference.)
+		if anyWinner(ev) {
+			g.State = StateFinal
+		} else if g.Start.Before(now) {
+			// In the past but no winner declared — probably postponed or in
+			// progress. Treat as Final so the user at least sees it surface.
+			g.State = StateFinal
+		} else {
+			g.State = StateUpcoming
+		}
+		games = append(games, g)
+	}
+	return games, nil
+}
+
+func anyWinner(ev scoreboardEvent) bool {
+	if len(ev.Competitions) == 0 {
+		return false
+	}
+	for _, c := range ev.Competitions[0].Competitors {
+		if c.Winner {
+			return true
+		}
+	}
+	return false
 }
 
 func FetchTeams(league League) ([]EspnTeam, error) {
