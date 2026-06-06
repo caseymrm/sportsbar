@@ -1,0 +1,59 @@
+package main
+
+import (
+	"time"
+
+	"github.com/caseymrm/menuet"
+)
+
+const Version = "0.1.0"
+
+func main() {
+	cfg := LoadConfig()
+	poller := NewPoller(cfg)
+	menu := NewMenu(cfg, poller)
+
+	wg, ctx := menuet.App().GracefulShutdownHandles()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		poller.Run(ctx)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		RunNotifier(ctx, cfg, poller.Updates())
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		refresh := time.NewTicker(5 * time.Second)
+		defer refresh.Stop()
+		prune := time.NewTicker(15 * time.Minute)
+		defer prune.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-refresh.C:
+				menuet.App().SetMenuState(menu.Title())
+			case <-prune.C:
+				// Games age out of ESPN's slate after roughly a day; let the
+				// reveal map follow the same TTL so it doesn't grow forever.
+				cfg.PruneRevealed(48 * time.Hour)
+			}
+		}
+	}()
+
+	app := menuet.App()
+	app.Name = "sportsbar"
+	app.Label = "com.github.caseymrm.sportsbar"
+	app.Children = menu.Children
+	app.AutoUpdate.Version = Version
+	app.AutoUpdate.Repo = "caseymrm/sportsbar"
+	app.SetMenuState(menu.Title())
+	app.RunApplication()
+}
