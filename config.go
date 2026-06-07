@@ -4,12 +4,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/caseymrm/menuet"
+	"github.com/caseymrm/menuet/v2"
 )
 
 const (
 	keyFavorites        = "sportsbar.favorites"
 	keyRevealed         = "sportsbar.revealed"
+	keyTeamPrefs        = "sportsbar.teamPrefs"
 	keyDefaultShow      = "sportsbar.scoresByDefault"
 	keyNotifyGameStart  = "sportsbar.notifyGameStart"
 	keyNotifyGameEnd    = "sportsbar.notifyGameEnd"
@@ -26,11 +27,48 @@ type Favorite struct {
 	Name   string `json:"name"`
 }
 
+// TeamPrefs holds per-team overrides for each global setting. nil means "use
+// the global value"; *true / *false are explicit overrides.
+type TeamPrefs struct {
+	ScoresByDefault  *bool `json:"scoresByDefault,omitempty"`
+	NotifyGameStart  *bool `json:"notifyGameStart,omitempty"`
+	NotifyGameEnd    *bool `json:"notifyGameEnd,omitempty"`
+	NotifyLeadChange *bool `json:"notifyLeadChange,omitempty"`
+}
+
+// PrefField names a single per-team override so menu code can address them
+// without hardcoding four parallel methods.
+type PrefField int
+
+const (
+	PrefScoresByDefault PrefField = iota
+	PrefNotifyGameStart
+	PrefNotifyGameEnd
+	PrefNotifyLeadChange
+)
+
+func (p *TeamPrefs) field(f PrefField) **bool {
+	switch f {
+	case PrefScoresByDefault:
+		return &p.ScoresByDefault
+	case PrefNotifyGameStart:
+		return &p.NotifyGameStart
+	case PrefNotifyGameEnd:
+		return &p.NotifyGameEnd
+	case PrefNotifyLeadChange:
+		return &p.NotifyLeadChange
+	}
+	return nil
+}
+
+func teamKey(league, teamID string) string { return league + ":" + teamID }
+
 type Config struct {
 	mu sync.RWMutex
 
 	favorites []Favorite
 	revealed  map[string]int64
+	teamPrefs map[string]TeamPrefs
 
 	scoresByDefault  bool
 	notifyGameStart  bool
@@ -50,6 +88,7 @@ func LoadConfig() *Config {
 	}
 	c := &Config{
 		revealed:         make(map[string]int64),
+		teamPrefs:        make(map[string]TeamPrefs),
 		scoresByDefault:  d.Boolean(keyDefaultShow),
 		notifyGameStart:  d.Boolean(keyNotifyGameStart),
 		notifyGameEnd:    d.Boolean(keyNotifyGameEnd),
@@ -57,8 +96,12 @@ func LoadConfig() *Config {
 	}
 	_ = d.Unmarshal(keyFavorites, &c.favorites)
 	_ = d.Unmarshal(keyRevealed, &c.revealed)
+	_ = d.Unmarshal(keyTeamPrefs, &c.teamPrefs)
 	if c.revealed == nil {
 		c.revealed = make(map[string]int64)
+	}
+	if c.teamPrefs == nil {
+		c.teamPrefs = make(map[string]TeamPrefs)
 	}
 	return c
 }
@@ -102,14 +145,133 @@ func (c *Config) IsFavorite(leagueKey, teamID string) bool {
 	return false
 }
 
-func (c *Config) Revealed(gameID string) bool {
+// Revealed reports whether the game's score should be shown. Precedence:
+//   1. explicit per-game reveal flag set by the user
+//   2. per-team "show scores by default" override on any followed team in the game
+//   3. global "show scores by default"
+//
+// Multi-team-favorite edge case (you follow both teams in the game): if any
+// followed team says "show", we show. Opt-in actions fire if any opt-in is true.
+func (c *Config) Revealed(g Game) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if c.scoresByDefault {
+	if _, ok := c.revealed[g.ID]; ok {
 		return true
 	}
+	for _, f := range c.favorites {
+		if !g.InvolvesTeam(f.League, f.TeamID) {
+			continue
+		}
+		if p, ok := c.teamPrefs[teamKey(f.League, f.TeamID)]; ok && p.ScoresByDefault != nil {
+			if *p.ScoresByDefault {
+				return true
+			}
+		}
+	}
+	return c.scoresByDefault
+}
+
+// RevealedExplicit reports whether the user has explicitly opted in for this
+// specific game (the per-game flag), ignoring team or global defaults.
+func (c *Config) RevealedExplicit(gameID string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	_, ok := c.revealed[gameID]
 	return ok
+}
+
+// TeamPref returns the override for a single field on a team, or nil meaning
+// "use global default".
+func (c *Config) TeamPref(league, teamID string, field PrefField) *bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	prefs, ok := c.teamPrefs[teamKey(league, teamID)]
+	if !ok {
+		return nil
+	}
+	p := prefs.field(field)
+	if p == nil || *p == nil {
+		return nil
+	}
+	v := **p
+	return &v
+}
+
+// SetTeamPref sets a per-team override. Pass nil to revert to the global default.
+func (c *Config) SetTeamPref(league, teamID string, field PrefField, v *bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	key := teamKey(league, teamID)
+	prefs := c.teamPrefs[key]
+	p := prefs.field(field)
+	if p == nil {
+		return
+	}
+	if v == nil {
+		*p = nil
+	} else {
+		val := *v
+		*p = &val
+	}
+	if prefs.isEmpty() {
+		delete(c.teamPrefs, key)
+	} else {
+		c.teamPrefs[key] = prefs
+	}
+	_ = menuet.Defaults().Marshal(keyTeamPrefs, c.teamPrefs)
+}
+
+func (p TeamPrefs) isEmpty() bool {
+	return p.ScoresByDefault == nil && p.NotifyGameStart == nil &&
+		p.NotifyGameEnd == nil && p.NotifyLeadChange == nil
+}
+
+// EffectiveNotify reports whether to fire the given notification kind for a
+// game involving the user's favorites. Most-aggressive: if any followed team
+// in the game says yes (or falls back to a global yes), notify.
+func (c *Config) EffectiveNotify(g Game, field PrefField) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	globalOn := false
+	switch field {
+	case PrefNotifyGameStart:
+		globalOn = c.notifyGameStart
+	case PrefNotifyGameEnd:
+		globalOn = c.notifyGameEnd
+	case PrefNotifyLeadChange:
+		globalOn = c.notifyLeadChange
+	default:
+		return false
+	}
+	any := false
+	allOverride := true
+	for _, f := range c.favorites {
+		if !g.InvolvesTeam(f.League, f.TeamID) {
+			continue
+		}
+		any = true
+		prefs, ok := c.teamPrefs[teamKey(f.League, f.TeamID)]
+		if !ok {
+			allOverride = false
+			continue
+		}
+		p := prefs.field(field)
+		if p == nil || *p == nil {
+			allOverride = false
+			continue
+		}
+		if **p {
+			return true
+		}
+	}
+	if !any {
+		return globalOn
+	}
+	if allOverride {
+		// every followed team in this game explicitly said "off"
+		return false
+	}
+	return globalOn
 }
 
 func (c *Config) Reveal(gameID string) {

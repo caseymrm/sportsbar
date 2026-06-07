@@ -51,6 +51,13 @@ type scoreboardEvent struct {
 	ShortName    string                  `json:"shortName"`
 	Status       scoreboardStatus        `json:"status"`
 	Competitions []scoreboardCompetition `json:"competitions"`
+	Links        []scoreboardLink        `json:"links"`
+}
+
+type scoreboardLink struct {
+	Rel  []string `json:"rel"`
+	Href string   `json:"href"`
+	Text string   `json:"text"`
 }
 
 // espnTime parses ESPN's scoreboard timestamps, which are minute-precision
@@ -204,6 +211,7 @@ func gameFromEvent(league League, ev scoreboardEvent) (Game, bool) {
 		Clock:       ev.Status.DisplayClock,
 		Period:      ev.Status.Period,
 		ShortDetail: ev.Status.Type.ShortDetail,
+		Links:       linksByRel(ev.Links),
 	}
 	switch ev.Status.Type.State {
 	case "pre":
@@ -281,6 +289,25 @@ func FetchTeamSchedule(league League, teamID string) ([]Game, error) {
 		games = append(games, g)
 	}
 	return games, nil
+}
+
+// linksByRel keys ESPN's link list by the first element of each link's rel
+// array, which is the category ("summary", "boxscore", "recap", etc.).
+func linksByRel(ls []scoreboardLink) map[string]string {
+	if len(ls) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(ls))
+	for _, l := range ls {
+		if l.Href == "" || len(l.Rel) == 0 {
+			continue
+		}
+		if _, exists := out[l.Rel[0]]; exists {
+			continue
+		}
+		out[l.Rel[0]] = l.Href
+	}
+	return out
 }
 
 func anyWinner(ev scoreboardEvent) bool {

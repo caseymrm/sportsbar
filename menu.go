@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os/exec"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/caseymrm/menuet"
+	"github.com/caseymrm/menuet/v2"
 )
 
 // Menu owns the menubar UI. Title rendering and dropdown construction read
@@ -52,7 +53,7 @@ func (m *Menu) Title() *menuet.MenuState {
 	parts := make([]string, 0, len(games))
 	for _, g := range games {
 		abbr := favoriteAbbrInGame(g, favs)
-		revealed := m.cfg.Revealed(g.ID)
+		revealed := m.cfg.Revealed(g)
 		parts = append(parts, g.TitleSlot(abbr, revealed, now))
 	}
 	return &menuet.MenuState{Title: strings.Join(parts, " | ")}
@@ -81,13 +82,10 @@ func (m *Menu) Children() []menuet.MenuItem {
 		// Empty state: skip the wrapping "Choose teams" submenu and put the
 		// per-league pickers directly at the top so adding a first team takes
 		// one fewer click.
-		items = append(items, menuet.MenuItem{
-			Text:       "Pick a team to follow:",
-			FontWeight: menuet.WeightBold,
-		})
+		items = append(items, labelItem("Pick a team to follow:", menuet.WeightBold))
 		for _, league := range Leagues {
 			l := league
-			items = append(items, menuet.MenuItem{
+			items = append(items, menuet.Regular{
 				Text:     l.Label,
 				Children: func() []menuet.MenuItem { return m.teamSubmenu(l) },
 			})
@@ -95,32 +93,30 @@ func (m *Menu) Children() []menuet.MenuItem {
 	} else {
 		games := m.p.FavoriteGames()
 		if len(games) == 0 {
-			items = append(items, menuet.MenuItem{
-				Text: "No games for your teams today",
-			})
+			items = append(items, labelItem("No games for your teams today", menuet.WeightRegular))
 		} else {
 			for _, g := range games {
 				items = append(items, m.gameItem(g, now))
 			}
 		}
-		items = append(items, menuet.MenuItem{Type: menuet.Separator})
+		items = append(items, menuet.Separator{})
 		for _, f := range favs {
 			f := f
-			items = append(items, menuet.MenuItem{
+			items = append(items, menuet.Regular{
 				Text:     fmt.Sprintf("%s (%s)", f.Name, leagueLabel(f.League)),
 				Children: func() []menuet.MenuItem { return m.favoriteTeamSubmenu(f) },
 			})
 		}
 		if len(favs) < MaxFavorites {
-			items = append(items, menuet.MenuItem{
+			items = append(items, menuet.Regular{
 				Text:     "Add another favorite",
 				Children: m.addAnotherSubmenu,
 			})
 		}
 	}
 
-	items = append(items, menuet.MenuItem{Type: menuet.Separator})
-	items = append(items, menuet.MenuItem{
+	items = append(items, menuet.Separator{})
+	items = append(items, menuet.Regular{
 		Text:     "Settings",
 		Children: m.settingsSubmenu,
 	})
@@ -128,7 +124,7 @@ func (m *Menu) Children() []menuet.MenuItem {
 }
 
 func (m *Menu) gameItem(g Game, now time.Time) menuet.MenuItem {
-	revealed := m.cfg.Revealed(g.ID)
+	revealed := m.cfg.Revealed(g)
 	var label string
 	if revealed {
 		label = g.SummaryRevealed(now)
@@ -136,7 +132,7 @@ func (m *Menu) gameItem(g Game, now time.Time) menuet.MenuItem {
 		label = g.SummaryHidden(now)
 	}
 	gid := g.ID
-	return menuet.MenuItem{
+	return menuet.Regular{
 		Text:     fmt.Sprintf("%s · %s", g.LeagueLabel, label),
 		Children: func() []menuet.MenuItem { return m.gameSubmenu(gid) },
 	}
@@ -156,21 +152,21 @@ func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
 		}
 	}
 	if !found {
-		return []menuet.MenuItem{{Text: "Game no longer available"}}
+		return []menuet.MenuItem{labelItem("Game no longer available", menuet.WeightRegular)}
 	}
 	now := time.Now()
-	revealed := m.cfg.Revealed(g.ID)
+	revealed := m.cfg.Revealed(g)
 
 	items := []menuet.MenuItem{
-		{Text: g.Matchup(), FontWeight: menuet.WeightBold},
+		labelItem(g.Matchup(), menuet.WeightBold),
 	}
 	if g.ShortDetail != "" {
-		items = append(items, menuet.MenuItem{Text: g.ShortDetail})
+		items = append(items, labelItem(g.ShortDetail, menuet.WeightRegular))
 	}
 	if revealed {
-		items = append(items, menuet.MenuItem{Text: g.SummaryRevealed(now)})
-		items = append(items, menuet.MenuItem{Type: menuet.Separator})
-		items = append(items, menuet.MenuItem{
+		items = append(items, labelItem(g.SummaryRevealed(now), menuet.WeightRegular))
+		items = append(items, menuet.Separator{})
+		items = append(items, menuet.Regular{
 			Text: "Hide scores",
 			Clicked: func() {
 				m.cfg.Hide(g.ID)
@@ -179,9 +175,9 @@ func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
 			},
 		})
 	} else if g.State != StateUpcoming {
-		items = append(items, menuet.MenuItem{Text: g.SummaryHidden(now)})
-		items = append(items, menuet.MenuItem{Type: menuet.Separator})
-		items = append(items, menuet.MenuItem{
+		items = append(items, labelItem(g.SummaryHidden(now), menuet.WeightRegular))
+		items = append(items, menuet.Separator{})
+		items = append(items, menuet.Regular{
 			Text: "Show scores",
 			Clicked: func() {
 				m.cfg.Reveal(g.ID)
@@ -190,8 +186,26 @@ func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
 			},
 		})
 	} else {
-		items = append(items, menuet.MenuItem{Text: g.SummaryHidden(now)})
+		items = append(items, labelItem(g.SummaryHidden(now), menuet.WeightRegular))
 	}
+	items = appendOpenInESPN(items, g)
+	return items
+}
+
+// appendOpenInESPN adds a separator + "Open in ESPN" item if a Gamecast link
+// is present. Skipped silently if the API didn't include links for this game.
+func appendOpenInESPN(items []menuet.MenuItem, g Game) []menuet.MenuItem {
+	url := g.Links["summary"]
+	if url == "" {
+		return items
+	}
+	items = append(items, menuet.Separator{})
+	items = append(items, menuet.Regular{
+		Text: "Open in ESPN",
+		Clicked: func() {
+			_ = exec.Command("open", url).Start()
+		},
+	})
 	return items
 }
 
@@ -199,11 +213,22 @@ func (m *Menu) refreshTitle() {
 	menuet.App().SetMenuState(m.Title())
 }
 
+// labelItem renders informational text that should look enabled (not greyed).
+// menuet.m:109 sets item.enabled = clickable || hasChildren — a no-op Clicked
+// is the simplest way to force the enabled rendering without changing menuet.
+func labelItem(text string, weight menuet.FontWeight) menuet.MenuItem {
+	return menuet.Regular{
+		Text:       text,
+		FontWeight: weight,
+		Clicked:    func() {},
+	}
+}
+
 func (m *Menu) addAnotherSubmenu() []menuet.MenuItem {
 	items := make([]menuet.MenuItem, 0, len(Leagues))
 	for _, league := range Leagues {
 		l := league
-		items = append(items, menuet.MenuItem{
+		items = append(items, menuet.Regular{
 			Text:     l.Label,
 			Children: func() []menuet.MenuItem { return m.teamSubmenu(l) },
 		})
@@ -217,7 +242,7 @@ const scheduleWindow = 5
 func (m *Menu) favoriteTeamSubmenu(f Favorite) []menuet.MenuItem {
 	league, ok := LeagueByKey(f.League)
 	if !ok {
-		return []menuet.MenuItem{{Text: "Unknown league"}}
+		return []menuet.MenuItem{menuet.Regular{Text: "Unknown league"}}
 	}
 	sched, fresh := m.teamSchedule(league, f.TeamID)
 
@@ -255,31 +280,63 @@ func (m *Menu) favoriteTeamSubmenu(f Favorite) []menuet.MenuItem {
 
 	items := []menuet.MenuItem{}
 	if !fresh && len(sched) == 0 {
-		items = append(items, menuet.MenuItem{Text: "Loading schedule…"})
+		items = append(items, labelItem("Loading schedule…", menuet.WeightRegular))
 	}
 	if len(recent) > 0 {
-		items = append(items, menuet.MenuItem{
-			Text:       "Recent",
-			FontWeight: menuet.WeightSemibold,
-		})
+		items = append(items, labelItem("Recent", menuet.WeightSemibold))
 		for _, g := range recent {
 			items = append(items, m.scheduleGameItem(g, now))
 		}
 	}
 	if len(upcoming) > 0 {
-		items = append(items, menuet.MenuItem{
-			Text:       "Upcoming",
-			FontWeight: menuet.WeightSemibold,
-		})
+		items = append(items, labelItem("Upcoming", menuet.WeightSemibold))
 		for _, g := range upcoming {
 			items = append(items, m.scheduleGameItem(g, now))
 		}
 	}
 	if len(recent) == 0 && len(upcoming) == 0 && fresh {
-		items = append(items, menuet.MenuItem{Text: "No other games on this team's schedule"})
+		items = append(items, labelItem("No other games on this team's schedule", menuet.WeightRegular))
 	}
-	items = append(items, menuet.MenuItem{Type: menuet.Separator})
-	items = append(items, menuet.MenuItem{
+
+	// Collect IDs of currently-visible games (recent + upcoming with scores —
+	// upcoming games have no score so they're ignored). If any aren't already
+	// revealed (via per-game flag, per-team default, or global default), offer
+	// a bulk "Show all scores".
+	revealable := []Game{}
+	for _, g := range recent {
+		revealable = append(revealable, g)
+	}
+	hasHidden := false
+	for _, g := range revealable {
+		if !m.cfg.Revealed(g) {
+			hasHidden = true
+			break
+		}
+	}
+	if hasHidden {
+		ids := make([]string, 0, len(revealable))
+		for _, g := range revealable {
+			ids = append(ids, g.ID)
+		}
+		items = append(items, menuet.Separator{})
+		items = append(items, menuet.Regular{
+			Text: "Show all scores",
+			Clicked: func() {
+				for _, id := range ids {
+					m.cfg.Reveal(id)
+				}
+				menuet.App().MenuChanged()
+				m.refreshTitle()
+			},
+		})
+	}
+
+	items = append(items, menuet.Separator{})
+	items = append(items, menuet.Regular{
+		Text:     "Team settings",
+		Children: func() []menuet.MenuItem { return m.teamSettingsSubmenu(f) },
+	})
+	items = append(items, menuet.Regular{
 		Text: "Remove from favorites",
 		Clicked: func() {
 			m.cfg.ToggleFavorite(f)
@@ -291,11 +348,75 @@ func (m *Menu) favoriteTeamSubmenu(f Favorite) []menuet.MenuItem {
 	return items
 }
 
+// teamSettingsSubmenu builds the per-team overrides menu. Each setting is a
+// sub-submenu with three choices: use global / always on / always off.
+func (m *Menu) teamSettingsSubmenu(f Favorite) []menuet.MenuItem {
+	items := []menuet.MenuItem{}
+	add := func(label string, field PrefField, globalVal bool) {
+		items = append(items, menuet.Regular{
+			Text:     prefHeader(label, m.cfg.TeamPref(f.League, f.TeamID, field), globalVal),
+			Children: func() []menuet.MenuItem { return m.prefChoiceSubmenu(f, field, globalVal) },
+		})
+	}
+	add("Show scores by default", PrefScoresByDefault, m.cfg.ScoresByDefault())
+	add("Notify when game starts", PrefNotifyGameStart, m.cfg.NotifyGameStart())
+	add("Notify when game ends", PrefNotifyGameEnd, m.cfg.NotifyGameEnd())
+	add("Notify on lead change", PrefNotifyLeadChange, m.cfg.NotifyLeadChange())
+	return items
+}
+
+// prefHeader produces the parent-item label, showing the effective state and
+// whether it's overridden ("override: on") or following the global ("default: off").
+func prefHeader(label string, pref *bool, globalVal bool) string {
+	if pref == nil {
+		return fmt.Sprintf("%s — default (%s)", label, onOff(globalVal))
+	}
+	return fmt.Sprintf("%s — override: %s", label, onOff(*pref))
+}
+
+func onOff(b bool) string {
+	if b {
+		return "on"
+	}
+	return "off"
+}
+
+// prefChoiceSubmenu shows the three options for a single per-team setting,
+// with the current state checkmarked.
+func (m *Menu) prefChoiceSubmenu(f Favorite, field PrefField, globalVal bool) []menuet.MenuItem {
+	current := m.cfg.TeamPref(f.League, f.TeamID, field)
+	set := func(v *bool) func() {
+		return func() {
+			m.cfg.SetTeamPref(f.League, f.TeamID, field, v)
+			menuet.App().MenuChanged()
+			m.refreshTitle()
+		}
+	}
+	on, off := true, false
+	return []menuet.MenuItem{
+		menuet.Regular{
+			Text:    fmt.Sprintf("Use global default (%s)", onOff(globalVal)),
+			State:   current == nil,
+			Clicked: set(nil),
+		},
+		menuet.Regular{
+			Text:    "Always on for this team",
+			State:   current != nil && *current,
+			Clicked: set(&on),
+		},
+		menuet.Regular{
+			Text:    "Always off for this team",
+			State:   current != nil && !*current,
+			Clicked: set(&off),
+		},
+	}
+}
+
 // scheduleGameItem renders a schedule entry with the same spoiler-aware
 // formatting as a top-level game. Final scores hide unless revealed; upcoming
 // games have no score so show plain.
 func (m *Menu) scheduleGameItem(g Game, now time.Time) menuet.MenuItem {
-	revealed := m.cfg.Revealed(g.ID)
+	revealed := m.cfg.Revealed(g)
 	var label string
 	if revealed {
 		label = g.SummaryRevealed(now)
@@ -303,7 +424,7 @@ func (m *Menu) scheduleGameItem(g Game, now time.Time) menuet.MenuItem {
 		label = g.SummaryHidden(now)
 	}
 	gid := g.ID
-	return menuet.MenuItem{
+	return menuet.Regular{
 		Text:     label,
 		Children: func() []menuet.MenuItem { return m.scheduleGameSubmenu(gid) },
 	}
@@ -329,17 +450,17 @@ func (m *Menu) scheduleGameSubmenu(gameID string) []menuet.MenuItem {
 	}
 	m.mu.Unlock()
 	if !found {
-		return []menuet.MenuItem{{Text: "Game no longer available"}}
+		return []menuet.MenuItem{labelItem("Game no longer available", menuet.WeightRegular)}
 	}
 	now := time.Now()
-	revealed := m.cfg.Revealed(g.ID)
+	revealed := m.cfg.Revealed(g)
 	items := []menuet.MenuItem{
-		{Text: g.Matchup(), FontWeight: menuet.WeightBold},
+		labelItem(g.Matchup(), menuet.WeightBold),
 	}
 	if revealed {
-		items = append(items, menuet.MenuItem{Text: g.SummaryRevealed(now)})
-		items = append(items, menuet.MenuItem{Type: menuet.Separator})
-		items = append(items, menuet.MenuItem{
+		items = append(items, labelItem(g.SummaryRevealed(now), menuet.WeightRegular))
+		items = append(items, menuet.Separator{})
+		items = append(items, menuet.Regular{
 			Text: "Hide scores",
 			Clicked: func() {
 				m.cfg.Hide(g.ID)
@@ -347,9 +468,9 @@ func (m *Menu) scheduleGameSubmenu(gameID string) []menuet.MenuItem {
 			},
 		})
 	} else if g.State == StateFinal {
-		items = append(items, menuet.MenuItem{Text: g.SummaryHidden(now)})
-		items = append(items, menuet.MenuItem{Type: menuet.Separator})
-		items = append(items, menuet.MenuItem{
+		items = append(items, labelItem(g.SummaryHidden(now), menuet.WeightRegular))
+		items = append(items, menuet.Separator{})
+		items = append(items, menuet.Regular{
 			Text: "Show scores",
 			Clicked: func() {
 				m.cfg.Reveal(g.ID)
@@ -357,8 +478,9 @@ func (m *Menu) scheduleGameSubmenu(gameID string) []menuet.MenuItem {
 			},
 		})
 	} else {
-		items = append(items, menuet.MenuItem{Text: g.SummaryHidden(now)})
+		items = append(items, labelItem(g.SummaryHidden(now), menuet.WeightRegular))
 	}
+	items = appendOpenInESPN(items, g)
 	return items
 }
 
@@ -413,14 +535,14 @@ func leagueLabel(key string) string {
 func (m *Menu) teamSubmenu(league League) []menuet.MenuItem {
 	teams := m.teams(league)
 	if len(teams) == 0 {
-		return []menuet.MenuItem{{Text: "Loading teams…"}}
+		return []menuet.MenuItem{menuet.Regular{Text: "Loading teams…"}}
 	}
 	sort.Slice(teams, func(i, j int) bool { return teams[i].DisplayName < teams[j].DisplayName })
 	items := make([]menuet.MenuItem, 0, len(teams))
 	for _, t := range teams {
 		t := t
 		fav := m.cfg.IsFavorite(league.Key, t.ID)
-		items = append(items, menuet.MenuItem{
+		items = append(items, menuet.Regular{
 			Text:  t.DisplayName,
 			State: fav,
 			Clicked: func() {
@@ -473,7 +595,7 @@ func (m *Menu) teams(league League) []EspnTeam {
 
 func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 	return []menuet.MenuItem{
-		{
+		menuet.Regular{
 			Text:  "Show scores by default",
 			State: m.cfg.ScoresByDefault(),
 			Clicked: func() {
@@ -482,8 +604,8 @@ func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 				m.refreshTitle()
 			},
 		},
-		{Type: menuet.Separator},
-		{
+		menuet.Separator{},
+		menuet.Regular{
 			Text:  "Notify when game starts",
 			State: m.cfg.NotifyGameStart(),
 			Clicked: func() {
@@ -491,7 +613,7 @@ func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 				menuet.App().MenuChanged()
 			},
 		},
-		{
+		menuet.Regular{
 			Text:  "Notify when game ends",
 			State: m.cfg.NotifyGameEnd(),
 			Clicked: func() {
@@ -499,7 +621,7 @@ func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 				menuet.App().MenuChanged()
 			},
 		},
-		{
+		menuet.Regular{
 			Text:  "Notify on lead change (revealed games only)",
 			State: m.cfg.NotifyLeadChange(),
 			Clicked: func() {

@@ -26,6 +26,7 @@ type Game struct {
 	Clock                string
 	Period               int
 	ShortDetail          string
+	Links                map[string]string // rel -> URL (e.g. "summary", "boxscore")
 }
 
 func (g Game) InvolvesTeam(leagueKey, teamID string) bool {
@@ -121,6 +122,9 @@ func relevanceScore(g Game, now time.Time) float64 {
 	return 999
 }
 
+// relativeFuture formats a future time for use in "in 18h" / "on Tue" labels.
+// Sub-day stays in "in Xm" / "in Xh" so the sentence reads naturally; ≥1 day
+// switches to "on <weekday>" (within a week) or "on Jan 2" (beyond a week).
 func relativeFuture(t, now time.Time) string {
 	d := t.Sub(now)
 	if d < time.Minute {
@@ -132,9 +136,16 @@ func relativeFuture(t, now time.Time) string {
 	if d < 24*time.Hour {
 		return fmt.Sprintf("in %dh", int(d.Hours()))
 	}
-	return fmt.Sprintf("in %dd", int(d.Hours()/24))
+	if d < 7*24*time.Hour {
+		return "on " + t.Format("Mon")
+	}
+	return "on " + t.Format("Jan 2")
 }
 
+// relativePast formats a past time for "finished 3h ago" / "finished Fri".
+// Sub-day keeps the "Xh ago" suffix because dropping it ("finished 3h") would
+// read badly; ≥1 day drops the suffix entirely since the weekday/date alone
+// is unambiguous in the parent template.
 func relativePast(t, now time.Time) string {
 	d := now.Sub(t)
 	if d < time.Minute {
@@ -146,9 +157,14 @@ func relativePast(t, now time.Time) string {
 	if d < 24*time.Hour {
 		return fmt.Sprintf("%dh ago", int(d.Hours()))
 	}
-	return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	if d < 7*24*time.Hour {
+		return t.Format("Mon")
+	}
+	return t.Format("Jan 2")
 }
 
+// relativeFutureShort / relativePastShort are the menubar-title forms. Sub-day
+// drops the "in"/"ago" prefix entirely; ≥1 day matches the long form.
 func relativeFutureShort(t, now time.Time) string {
 	d := t.Sub(now)
 	if d < time.Minute {
@@ -160,7 +176,10 @@ func relativeFutureShort(t, now time.Time) string {
 	if d < 24*time.Hour {
 		return fmt.Sprintf("%dh", int(d.Hours()))
 	}
-	return fmt.Sprintf("%dd", int(d.Hours()/24))
+	if d < 7*24*time.Hour {
+		return t.Format("Mon")
+	}
+	return t.Format("Jan 2")
 }
 
 func relativePastShort(t, now time.Time) string {
@@ -174,5 +193,8 @@ func relativePastShort(t, now time.Time) string {
 	if d < 24*time.Hour {
 		return fmt.Sprintf("%dh", int(d.Hours()))
 	}
-	return fmt.Sprintf("%dd", int(d.Hours()/24))
+	if d < 7*24*time.Hour {
+		return t.Format("Mon")
+	}
+	return t.Format("Jan 2")
 }
