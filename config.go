@@ -11,12 +11,18 @@ const (
 	keyFavorites        = "sportsbar.favorites"
 	keyRevealed         = "sportsbar.revealed"
 	keyTeamPrefs        = "sportsbar.teamPrefs"
+	keyEnabledLeagues   = "sportsbar.enabledLeagues"
 	keyDefaultShow      = "sportsbar.scoresByDefault"
 	keyNotifyGameStart  = "sportsbar.notifyGameStart"
 	keyNotifyGameEnd    = "sportsbar.notifyGameEnd"
 	keyNotifyLeadChange = "sportsbar.notifyLeadChange"
 	keyInitialized      = "sportsbar.initialized"
 )
+
+// DefaultEnabledLeagues is the seed set installed on first launch — the four
+// big US sports that sportsbar originally shipped with. Existing users keep
+// whatever they've toggled; only fresh installs hit this.
+var DefaultEnabledLeagues = []string{"nfl", "nba", "mlb", "nhl"}
 
 const MaxFavorites = 4
 
@@ -66,9 +72,10 @@ func teamKey(league, teamID string) string { return league + ":" + teamID }
 type Config struct {
 	mu sync.RWMutex
 
-	favorites []Favorite
-	revealed  map[string]int64
-	teamPrefs map[string]TeamPrefs
+	favorites      []Favorite
+	revealed       map[string]int64
+	teamPrefs      map[string]TeamPrefs
+	enabledLeagues map[string]bool
 
 	scoresByDefault  bool
 	notifyGameStart  bool
@@ -78,8 +85,11 @@ type Config struct {
 
 func LoadConfig() *Config {
 	d := menuet.Defaults()
-	// First-run defaults: notifications on. menuet.Defaults.Boolean cannot
-	// distinguish "unset" from "false", so we gate this with an init marker.
+	// First-run defaults: notifications on. menuet's Defaults.Boolean can't
+	// distinguish "unset" from "false", so we gate first-run with an init
+	// marker. enabledLeagues isn't seeded here — it's handled by the
+	// post-load fallback below so existing installs upgrading to this
+	// version (which already passed first-run init) also get seeded.
 	if !d.Boolean(keyInitialized) {
 		d.SetBoolean(keyNotifyGameStart, true)
 		d.SetBoolean(keyNotifyGameEnd, true)
@@ -89,6 +99,7 @@ func LoadConfig() *Config {
 	c := &Config{
 		revealed:         make(map[string]int64),
 		teamPrefs:        make(map[string]TeamPrefs),
+		enabledLeagues:   make(map[string]bool),
 		scoresByDefault:  d.Boolean(keyDefaultShow),
 		notifyGameStart:  d.Boolean(keyNotifyGameStart),
 		notifyGameEnd:    d.Boolean(keyNotifyGameEnd),
@@ -97,13 +108,58 @@ func LoadConfig() *Config {
 	_ = d.Unmarshal(keyFavorites, &c.favorites)
 	_ = d.Unmarshal(keyRevealed, &c.revealed)
 	_ = d.Unmarshal(keyTeamPrefs, &c.teamPrefs)
+	_ = d.Unmarshal(keyEnabledLeagues, &c.enabledLeagues)
 	if c.revealed == nil {
 		c.revealed = make(map[string]int64)
 	}
 	if c.teamPrefs == nil {
 		c.teamPrefs = make(map[string]TeamPrefs)
 	}
+	if c.enabledLeagues == nil {
+		c.enabledLeagues = make(map[string]bool)
+	}
+	// Seed default leagues if none are enabled — covers both fresh installs
+	// and upgrades from versions that predate this setting.
+	if len(c.enabledLeagues) == 0 {
+		for _, k := range DefaultEnabledLeagues {
+			c.enabledLeagues[k] = true
+		}
+		_ = d.Marshal(keyEnabledLeagues, c.enabledLeagues)
+	}
 	return c
+}
+
+// IsLeagueEnabled reports whether the user has the given league turned on.
+func (c *Config) IsLeagueEnabled(key string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.enabledLeagues[key]
+}
+
+// SetLeagueEnabled toggles a league on or off, persisting the change.
+func (c *Config) SetLeagueEnabled(key string, v bool) {
+	c.mu.Lock()
+	if v {
+		c.enabledLeagues[key] = true
+	} else {
+		delete(c.enabledLeagues, key)
+	}
+	c.mu.Unlock()
+	_ = menuet.Defaults().Marshal(keyEnabledLeagues, c.enabledLeagues)
+}
+
+// EnabledLeagueKeys returns the set of currently-enabled league keys (no
+// ordering guarantee — caller sorts if needed).
+func (c *Config) EnabledLeagueKeys() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	out := make([]string, 0, len(c.enabledLeagues))
+	for k, v := range c.enabledLeagues {
+		if v {
+			out = append(out, k)
+		}
+	}
+	return out
 }
 
 func (c *Config) Favorites() []Favorite {

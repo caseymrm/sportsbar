@@ -42,9 +42,9 @@ func (g Game) SummaryHidden(now time.Time) string {
 	case StateUpcoming:
 		return fmt.Sprintf("%s · %s", g.Matchup(), relativeFuture(g.Start, now))
 	case StateLive:
-		return fmt.Sprintf("%s · started %s", g.Matchup(), relativePast(g.Start, now))
+		return fmt.Sprintf("%s · %s", g.Matchup(), pastWithVerb("started", g.Start, now))
 	case StateFinal:
-		return fmt.Sprintf("%s · finished %s", g.Matchup(), relativePast(g.endTimeEstimate(), now))
+		return fmt.Sprintf("%s · %s", g.Matchup(), pastWithVerb("ended", g.endTimeEstimate(), now))
 	}
 	return g.Matchup()
 }
@@ -62,31 +62,78 @@ func (g Game) SummaryRevealed(now time.Time) string {
 			g.Away.Abbreviation, g.AwayScore,
 			g.Home.Abbreviation, g.HomeScore, detail)
 	case StateFinal:
-		return fmt.Sprintf("%s %d  %s %d · Final",
+		return fmt.Sprintf("%s %d  %s %d · %s",
 			g.Away.Abbreviation, g.AwayScore,
-			g.Home.Abbreviation, g.HomeScore)
+			g.Home.Abbreviation, g.HomeScore,
+			pastWithVerb("ended", g.endTimeEstimate(), now))
 	}
 	return g.Matchup()
 }
 
+// Winner reports the leading or winning team (Home or Away) and whether the
+// result is decisive. For finals, decisive == true unless it's a true tie.
+// For live games, decisive == true if anyone is ahead. Use the bool to decide
+// whether bolding makes sense.
+func (g Game) Winner() (team EspnTeam, score int, decisive bool) {
+	if g.HomeScore > g.AwayScore {
+		return g.Home, g.HomeScore, true
+	}
+	if g.AwayScore > g.HomeScore {
+		return g.Away, g.AwayScore, true
+	}
+	return EspnTeam{}, 0, false
+}
+
+// OutcomeForTeam returns "W" if the given team won, "L" if they lost, "" if
+// the game isn't final, is tied, or the team isn't in this game. Used to
+// prefix recent-list labels with the favorite's result.
+func (g Game) OutcomeForTeam(teamID string) string {
+	if g.State != StateFinal || g.HomeScore == g.AwayScore {
+		return ""
+	}
+	homeWon := g.HomeScore > g.AwayScore
+	switch teamID {
+	case g.Home.ID:
+		if homeWon {
+			return "W"
+		}
+		return "L"
+	case g.Away.ID:
+		if homeWon {
+			return "L"
+		}
+		return "W"
+	}
+	return ""
+}
+
 // TitleSlot is the compact menubar-title form. favAbbr anchors which side
-// of the matchup is the user's team.
+// of the matchup is the user's team. Live games are prefixed with "●" so the
+// in-progress state is glanceable, not just inferable from the verb.
 func (g Game) TitleSlot(favAbbr string, revealed bool, now time.Time) string {
+	var body string
 	if revealed && g.State != StateUpcoming {
 		if favAbbr == g.Home.Abbreviation {
-			return fmt.Sprintf("%s %d-%d %s", g.Home.Abbreviation, g.HomeScore, g.AwayScore, g.Away.Abbreviation)
+			body = fmt.Sprintf("%s %d-%d %s", g.Home.Abbreviation, g.HomeScore, g.AwayScore, g.Away.Abbreviation)
+		} else {
+			body = fmt.Sprintf("%s %d-%d %s", g.Away.Abbreviation, g.AwayScore, g.HomeScore, g.Home.Abbreviation)
 		}
-		return fmt.Sprintf("%s %d-%d %s", g.Away.Abbreviation, g.AwayScore, g.HomeScore, g.Home.Abbreviation)
+	} else {
+		switch g.State {
+		case StateUpcoming:
+			body = fmt.Sprintf("%s · %s", favAbbr, relativeFutureShort(g.Start, now))
+		case StateLive:
+			body = fmt.Sprintf("%s · %s", favAbbr, pastWithVerb("live", g.Start, now))
+		case StateFinal:
+			body = fmt.Sprintf("%s · %s", favAbbr, pastWithVerb("ended", g.endTimeEstimate(), now))
+		default:
+			body = favAbbr
+		}
 	}
-	switch g.State {
-	case StateUpcoming:
-		return fmt.Sprintf("%s · %s", favAbbr, relativeFutureShort(g.Start, now))
-	case StateLive:
-		return fmt.Sprintf("%s · live %s", favAbbr, relativePastShort(g.Start, now))
-	case StateFinal:
-		return fmt.Sprintf("%s · done %s", favAbbr, relativePastShort(g.endTimeEstimate(), now))
+	if g.State == StateLive {
+		return "● " + body
 	}
-	return favAbbr
+	return body
 }
 
 // ESPN's basic scoreboard feed has no actual end timestamp. Approximating
@@ -142,29 +189,35 @@ func relativeFuture(t, now time.Time) string {
 	return "on " + t.Format("Jan 2")
 }
 
-// relativePast formats a past time for "finished 3h ago" / "finished Fri".
-// Sub-day keeps the "Xh ago" suffix because dropping it ("finished 3h") would
-// read badly; ≥1 day drops the suffix entirely since the weekday/date alone
-// is unambiguous in the parent template.
-func relativePast(t, now time.Time) string {
+// pastWithVerb formats a past time with progressive verbosity:
+//
+//	<1m:          "just now"           (verb dropped — context already clear)
+//	<1h:          "ended 30m"
+//	<1d:          "ended 3h"
+//	<1wk:         "was Fri"            (verb dropped; "was" + weekday)
+//	older:        "May 23rd"           (verb dropped; ordinal date)
+//
+// Used with verb="ended" for final games, "started" for live in the
+// dropdown, and "live" for the menubar title.
+func pastWithVerb(verb string, t, now time.Time) string {
 	d := now.Sub(t)
 	if d < time.Minute {
 		return "just now"
 	}
 	if d < time.Hour {
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+		return fmt.Sprintf("%s %dm", verb, int(d.Minutes()))
 	}
 	if d < 24*time.Hour {
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
+		return fmt.Sprintf("%s %dh", verb, int(d.Hours()))
 	}
 	if d < 7*24*time.Hour {
-		return t.Format("Mon")
+		return "was " + t.Format("Mon")
 	}
-	return t.Format("Jan 2")
+	return t.Format("Jan ") + ordinalDay(t.Day())
 }
 
-// relativeFutureShort / relativePastShort are the menubar-title forms. Sub-day
-// drops the "in"/"ago" prefix entirely; ≥1 day matches the long form.
+// relativeFutureShort is the menubar form for upcoming games. Sub-day drops
+// the "in" prefix; ≥1 day matches the long form.
 func relativeFutureShort(t, now time.Time) string {
 	d := t.Sub(now)
 	if d < time.Minute {
@@ -182,19 +235,19 @@ func relativeFutureShort(t, now time.Time) string {
 	return t.Format("Jan 2")
 }
 
-func relativePastShort(t, now time.Time) string {
-	d := now.Sub(t)
-	if d < time.Minute {
-		return "now"
+// ordinalDay formats a day-of-month with an English ordinal suffix
+// (1st, 2nd, 3rd, 4th-20th, 21st, 22nd, 23rd, 24th-30th, 31st).
+func ordinalDay(d int) string {
+	suffix := "th"
+	if d < 11 || d > 13 {
+		switch d % 10 {
+		case 1:
+			suffix = "st"
+		case 2:
+			suffix = "nd"
+		case 3:
+			suffix = "rd"
+		}
 	}
-	if d < time.Hour {
-		return fmt.Sprintf("%dm", int(d.Minutes()))
-	}
-	if d < 24*time.Hour {
-		return fmt.Sprintf("%dh", int(d.Hours()))
-	}
-	if d < 7*24*time.Hour {
-		return t.Format("Mon")
-	}
-	return t.Format("Jan 2")
+	return fmt.Sprintf("%d%s", d, suffix)
 }

@@ -24,6 +24,8 @@ type Menu struct {
 
 	scheduleCache    map[string]teamSchedule // key: league:teamID
 	scheduleCacheTTL time.Duration
+
+	logos *LogoServer
 }
 
 type teamSchedule struct {
@@ -33,7 +35,7 @@ type teamSchedule struct {
 }
 
 func NewMenu(cfg *Config, p *Poller) *Menu {
-	return &Menu{
+	m := &Menu{
 		cfg:              cfg,
 		p:                p,
 		teamCache:        make(map[string][]EspnTeam),
@@ -41,22 +43,105 @@ func NewMenu(cfg *Config, p *Poller) *Menu {
 		scheduleCache:    make(map[string]teamSchedule),
 		scheduleCacheTTL: time.Hour,
 	}
+	m.logos = NewLogoServer(m.teams)
+	// Eagerly prime team catalogs for leagues with favorites so logos render
+	// on first menu open instead of waiting until the user opens the picker.
+	for _, f := range cfg.Favorites() {
+		if l, ok := LeagueByKey(f.League); ok {
+			m.teams(l)
+		}
+	}
+	return m
+}
+
+// favoriteLogoURL returns the default (transparent-background) logo URL for
+// the menubar status item, where macOS applies a template mask anyway.
+func (m *Menu) favoriteLogoURL(f Favorite) string {
+	return m.favoriteLogo(f, false)
+}
+
+// favoriteLogoForMenuURL returns a logo URL suitable for dropdown items.
+// Goes through the local composite server which puts the team logo on a
+// white disc — that's the only way to guarantee readability against
+// translucent system menus, which can pick up any color from the wallpaper
+// behind them. If the server failed to bind, falls back to ESPN's "dark"
+// variant in dark mode or the default logo in light mode.
+func (m *Menu) favoriteLogoForMenuURL(f Favorite) string {
+	if u := m.logos.URL(f.League, f.TeamID); u != "" {
+		return u
+	}
+	return m.favoriteLogo(f, isDarkMode())
+}
+
+func (m *Menu) favoriteLogo(f Favorite, dark bool) string {
+	league, ok := LeagueByKey(f.League)
+	if !ok {
+		return ""
+	}
+	for _, t := range m.teams(league) {
+		if t.ID == f.TeamID {
+			if dark {
+				return t.LogoDark()
+			}
+			return t.Logo()
+		}
+	}
+	return ""
+}
+
+// isDarkMode reports whether the user has macOS Dark Appearance active.
+// `defaults read -g AppleInterfaceStyle` returns "Dark" in dark mode and
+// errors (key not present) in light mode. Cached on first call since toggling
+// theme mid-session is rare and a stale read just shows a slightly-wrong
+// logo variant until app restart.
+var darkModeOnce sync.Once
+var darkModeCached bool
+
+func isDarkMode() bool {
+	darkModeOnce.Do(func() {
+		out, err := exec.Command("defaults", "read", "-g", "AppleInterfaceStyle").Output()
+		if err == nil && strings.TrimSpace(string(out)) == "Dark" {
+			darkModeCached = true
+		}
+	})
+	return darkModeCached
 }
 
 func (m *Menu) Title() *menuet.MenuState {
 	games := m.p.FavoriteGames()
+	favs := m.cfg.Favorites()
 	if len(games) == 0 {
-		return &menuet.MenuState{Title: "sportsbar"}
+		// No games today: show a logo for the first favorite if we have one,
+		// otherwise plain "sportsbar" text.
+		state := &menuet.MenuState{Title: "sportsbar"}
+		if len(favs) > 0 {
+			state.Image = m.favoriteLogoURL(favs[0])
+		}
+		return state
 	}
 	now := time.Now()
-	favs := m.cfg.Favorites()
 	parts := make([]string, 0, len(games))
 	for _, g := range games {
 		abbr := favoriteAbbrInGame(g, favs)
 		revealed := m.cfg.Revealed(g)
 		parts = append(parts, g.TitleSlot(abbr, revealed, now))
 	}
-	return &menuet.MenuState{Title: strings.Join(parts, " | ")}
+	// The first game is the most relevant (FavoriteGames is pre-sorted) —
+	// surface its favorite team's logo in the menubar's single image slot.
+	state := &menuet.MenuState{Title: strings.Join(parts, " | ")}
+	if topFav, ok := favoriteInGame(games[0], favs); ok {
+		state.Image = m.favoriteLogoURL(topFav)
+	}
+	return state
+}
+
+func favoriteInGame(g Game, favs []Favorite) (Favorite, bool) {
+	for _, f := range favs {
+		if g.InvolvesTeam(f.League, f.TeamID) {
+			return f, true
+		}
+	}
+	return Favorite{}, false
 }
 
 func favoriteAbbrInGame(g Game, favs []Favorite) string {
@@ -83,12 +168,17 @@ func (m *Menu) Children() []menuet.MenuItem {
 		// per-league pickers directly at the top so adding a first team takes
 		// one fewer click.
 		items = append(items, labelItem("Pick a team to follow:", menuet.WeightBold))
-		for _, league := range Leagues {
-			l := league
-			items = append(items, menuet.Regular{
-				Text:     l.Label,
-				Children: func() []menuet.MenuItem { return m.teamSubmenu(l) },
-			})
+		enabled := m.enabledLeagueList()
+		if len(enabled) == 0 {
+			items = append(items, labelItem("No leagues enabled — see Settings → Leagues", menuet.WeightRegular))
+		} else {
+			for _, league := range enabled {
+				l := league
+				items = append(items, menuet.Regular{
+					Text:     l.Label,
+					Children: func() []menuet.MenuItem { return m.teamSubmenu(l) },
+				})
+			}
 		}
 	} else {
 		games := m.p.FavoriteGames()
@@ -104,6 +194,7 @@ func (m *Menu) Children() []menuet.MenuItem {
 			f := f
 			items = append(items, menuet.Regular{
 				Text:     fmt.Sprintf("%s (%s)", f.Name, leagueLabel(f.League)),
+				Image:    m.favoriteLogoForMenuURL(f),
 				Children: func() []menuet.MenuItem { return m.favoriteTeamSubmenu(f) },
 			})
 		}
@@ -128,6 +219,16 @@ func (m *Menu) gameItem(g Game, now time.Time) menuet.MenuItem {
 	var label string
 	if revealed {
 		label = g.SummaryRevealed(now)
+		// Prefix the favorite team's W/L outcome for finals. For a game between
+		// two favorites we pick the first that matches — arbitrary but stable.
+		for _, f := range m.cfg.Favorites() {
+			if g.InvolvesTeam(f.League, f.TeamID) {
+				if o := g.OutcomeForTeam(f.TeamID); o != "" {
+					label = o + " · " + label
+				}
+				break
+			}
+		}
 	} else {
 		label = g.SummaryHidden(now)
 	}
@@ -160,11 +261,9 @@ func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
 	items := []menuet.MenuItem{
 		labelItem(g.Matchup(), menuet.WeightBold),
 	}
-	if g.ShortDetail != "" {
-		items = append(items, labelItem(g.ShortDetail, menuet.WeightRegular))
-	}
 	if revealed {
-		items = append(items, labelItem(g.SummaryRevealed(now), menuet.WeightRegular))
+		items = append(items, scoreLines(g)...)
+		items = append(items, labelItem(gameTimeLabel(g, now), menuet.WeightRegular))
 		items = append(items, menuet.Separator{})
 		items = append(items, menuet.Regular{
 			Text: "Hide scores",
@@ -190,6 +289,23 @@ func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
 	}
 	items = appendOpenInESPN(items, g)
 	return items
+}
+
+// gameTimeLabel produces the time-context line shown in a game submenu:
+// "Q3 5:42" for live, "ended Mon" for finals, "on Tue" for upcoming.
+func gameTimeLabel(g Game, now time.Time) string {
+	switch g.State {
+	case StateLive:
+		if g.ShortDetail != "" {
+			return g.ShortDetail
+		}
+		return fmt.Sprintf("Q%d %s", g.Period, g.Clock)
+	case StateFinal:
+		return pastWithVerb("ended", g.endTimeEstimate(), now)
+	case StateUpcoming:
+		return relativeFuture(g.Start, now)
+	}
+	return ""
 }
 
 // appendOpenInESPN adds a separator + "Open in ESPN" item if a Gamecast link
@@ -224,9 +340,32 @@ func labelItem(text string, weight menuet.FontWeight) menuet.MenuItem {
 	}
 }
 
+// scoreLines renders one labelItem per team (away first, then home) with the
+// winner / current leader's line bolded. menuet supports only one FontWeight
+// per item so we get bold-on-winner by separating teams onto their own lines.
+func scoreLines(g Game) []menuet.MenuItem {
+	winner, _, decisive := g.Winner()
+	weightFor := func(t EspnTeam) menuet.FontWeight {
+		if decisive && t.ID == winner.ID {
+			return menuet.WeightBold
+		}
+		return menuet.WeightRegular
+	}
+	return []menuet.MenuItem{
+		labelItem(fmt.Sprintf("%s %d", g.Away.Abbreviation, g.AwayScore), weightFor(g.Away)),
+		labelItem(fmt.Sprintf("%s %d", g.Home.Abbreviation, g.HomeScore), weightFor(g.Home)),
+	}
+}
+
 func (m *Menu) addAnotherSubmenu() []menuet.MenuItem {
-	items := make([]menuet.MenuItem, 0, len(Leagues))
-	for _, league := range Leagues {
+	enabled := m.enabledLeagueList()
+	if len(enabled) == 0 {
+		return []menuet.MenuItem{
+			labelItem("No leagues enabled — see Settings → Leagues", menuet.WeightRegular),
+		}
+	}
+	items := make([]menuet.MenuItem, 0, len(enabled))
+	for _, league := range enabled {
 		l := league
 		items = append(items, menuet.Regular{
 			Text:     l.Label,
@@ -234,6 +373,18 @@ func (m *Menu) addAnotherSubmenu() []menuet.MenuItem {
 		})
 	}
 	return items
+}
+
+// enabledLeagueList returns the league objects currently enabled by the user,
+// in the canonical Leagues declaration order (so US Pro stays first, etc.).
+func (m *Menu) enabledLeagueList() []League {
+	out := make([]League, 0, len(Leagues))
+	for _, l := range Leagues {
+		if m.cfg.IsLeagueEnabled(l.Key) {
+			out = append(out, l)
+		}
+	}
+	return out
 }
 
 // scheduleWindow is how many recent / upcoming games to show per team.
@@ -283,15 +434,15 @@ func (m *Menu) favoriteTeamSubmenu(f Favorite) []menuet.MenuItem {
 		items = append(items, labelItem("Loading schedule…", menuet.WeightRegular))
 	}
 	if len(recent) > 0 {
-		items = append(items, labelItem("Recent", menuet.WeightSemibold))
+		items = append(items, menuet.Regular{Text: "Recent", FontWeight: menuet.WeightSemibold})
 		for _, g := range recent {
-			items = append(items, m.scheduleGameItem(g, now))
+			items = append(items, m.scheduleGameItem(g, now, f.TeamID))
 		}
 	}
 	if len(upcoming) > 0 {
-		items = append(items, labelItem("Upcoming", menuet.WeightSemibold))
+		items = append(items, menuet.Regular{Text: "Upcoming", FontWeight: menuet.WeightSemibold})
 		for _, g := range upcoming {
-			items = append(items, m.scheduleGameItem(g, now))
+			items = append(items, m.scheduleGameItem(g, now, f.TeamID))
 		}
 	}
 	if len(recent) == 0 && len(upcoming) == 0 && fresh {
@@ -414,12 +565,16 @@ func (m *Menu) prefChoiceSubmenu(f Favorite, field PrefField, globalVal bool) []
 
 // scheduleGameItem renders a schedule entry with the same spoiler-aware
 // formatting as a top-level game. Final scores hide unless revealed; upcoming
-// games have no score so show plain.
-func (m *Menu) scheduleGameItem(g Game, now time.Time) menuet.MenuItem {
+// games have no score so show plain. When revealed, the favorite team's W/L
+// outcome is prefixed.
+func (m *Menu) scheduleGameItem(g Game, now time.Time, favTeamID string) menuet.MenuItem {
 	revealed := m.cfg.Revealed(g)
 	var label string
 	if revealed {
 		label = g.SummaryRevealed(now)
+		if o := g.OutcomeForTeam(favTeamID); o != "" {
+			label = o + " · " + label
+		}
 	} else {
 		label = g.SummaryHidden(now)
 	}
@@ -458,7 +613,8 @@ func (m *Menu) scheduleGameSubmenu(gameID string) []menuet.MenuItem {
 		labelItem(g.Matchup(), menuet.WeightBold),
 	}
 	if revealed {
-		items = append(items, labelItem(g.SummaryRevealed(now), menuet.WeightRegular))
+		items = append(items, scoreLines(g)...)
+		items = append(items, labelItem(gameTimeLabel(g, now), menuet.WeightRegular))
 		items = append(items, menuet.Separator{})
 		items = append(items, menuet.Regular{
 			Text: "Hide scores",
@@ -629,5 +785,52 @@ func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 				menuet.App().MenuChanged()
 			},
 		},
+		menuet.Separator{},
+		menuet.Regular{
+			Text:     "Leagues",
+			Children: m.leaguesSubmenu,
+		},
 	}
+}
+
+// leaguesSubmenu surfaces every available league grouped by category. Each
+// group is its own sub-submenu so the top-level Leagues list stays short.
+func (m *Menu) leaguesSubmenu() []menuet.MenuItem {
+	grouped := LeaguesGrouped()
+	items := make([]menuet.MenuItem, 0, len(LeagueGroupOrder))
+	for _, group := range LeagueGroupOrder {
+		leagues, ok := grouped[group]
+		if !ok || len(leagues) == 0 {
+			continue
+		}
+		ls := leagues
+		enabledCount := 0
+		for _, l := range ls {
+			if m.cfg.IsLeagueEnabled(l.Key) {
+				enabledCount++
+			}
+		}
+		items = append(items, menuet.Regular{
+			Text:     fmt.Sprintf("%s (%d/%d)", group, enabledCount, len(ls)),
+			Children: func() []menuet.MenuItem { return m.leaguesInGroup(ls) },
+		})
+	}
+	return items
+}
+
+func (m *Menu) leaguesInGroup(leagues []League) []menuet.MenuItem {
+	items := make([]menuet.MenuItem, 0, len(leagues))
+	for _, l := range leagues {
+		l := l
+		enabled := m.cfg.IsLeagueEnabled(l.Key)
+		items = append(items, menuet.Regular{
+			Text:  l.Label,
+			State: enabled,
+			Clicked: func() {
+				m.cfg.SetLeagueEnabled(l.Key, !enabled)
+				menuet.App().MenuChanged()
+			},
+		})
+	}
+	return items
 }

@@ -13,13 +13,76 @@ type League struct {
 	Key   string
 	Sport string
 	Label string
+	Group string // "US Pro" / "College" / "Soccer" — for grouping in settings UI
 }
 
+// Leagues is every team-sport league we verified returns a scoreboard with our
+// expected two-competitor shape. Probed against ESPN's site API and limited to
+// those that returned 200 and a usable event structure (golf/tennis/racing/MMA
+// excluded — different domain model; rugby/cricket/netball excluded — ESPN
+// serves those via separate feeds not on site.api.espn.com).
 var Leagues = []League{
-	{Key: "nfl", Sport: "football", Label: "NFL"},
-	{Key: "nba", Sport: "basketball", Label: "NBA"},
-	{Key: "mlb", Sport: "baseball", Label: "MLB"},
-	{Key: "nhl", Sport: "hockey", Label: "NHL"},
+	{Key: "nfl", Sport: "football", Label: "NFL", Group: "US Pro"},
+	{Key: "nba", Sport: "basketball", Label: "NBA", Group: "US Pro"},
+	{Key: "wnba", Sport: "basketball", Label: "WNBA", Group: "US Pro"},
+	{Key: "mlb", Sport: "baseball", Label: "MLB", Group: "US Pro"},
+	{Key: "nhl", Sport: "hockey", Label: "NHL", Group: "US Pro"},
+
+	{Key: "college-football", Sport: "football", Label: "NCAA Football", Group: "College"},
+	{Key: "mens-college-basketball", Sport: "basketball", Label: "NCAA Men's Basketball", Group: "College"},
+	{Key: "womens-college-basketball", Sport: "basketball", Label: "NCAA Women's Basketball", Group: "College"},
+	{Key: "college-baseball", Sport: "baseball", Label: "NCAA Baseball", Group: "College"},
+	{Key: "mens-college-hockey", Sport: "hockey", Label: "NCAA Men's Hockey", Group: "College"},
+	{Key: "mens-college-lacrosse", Sport: "lacrosse", Label: "NCAA Men's Lacrosse", Group: "College"},
+
+	// International domestic leagues (sorted roughly by global stature/visibility)
+	{Key: "eng.1", Sport: "soccer", Label: "Premier League", Group: "International"},
+	{Key: "esp.1", Sport: "soccer", Label: "La Liga", Group: "International"},
+	{Key: "ita.1", Sport: "soccer", Label: "Serie A", Group: "International"},
+	{Key: "ger.1", Sport: "soccer", Label: "Bundesliga", Group: "International"},
+	{Key: "fra.1", Sport: "soccer", Label: "Ligue 1", Group: "International"},
+	{Key: "ned.1", Sport: "soccer", Label: "Eredivisie", Group: "International"},
+	{Key: "por.1", Sport: "soccer", Label: "Primeira Liga", Group: "International"},
+	{Key: "usa.1", Sport: "soccer", Label: "MLS", Group: "International"},
+	{Key: "mex.1", Sport: "soccer", Label: "Liga MX", Group: "International"},
+	{Key: "usa.nwsl", Sport: "soccer", Label: "NWSL", Group: "International"},
+	{Key: "bra.1", Sport: "soccer", Label: "Brazilian Série A", Group: "International"},
+	{Key: "arg.1", Sport: "soccer", Label: "Argentine Liga Profesional", Group: "International"},
+	{Key: "afl", Sport: "australian-football", Label: "AFL", Group: "International"},
+
+	// Domestic cups
+	{Key: "eng.fa", Sport: "soccer", Label: "FA Cup", Group: "International"},
+	{Key: "eng.league_cup", Sport: "soccer", Label: "Carabao Cup", Group: "International"},
+	{Key: "esp.copa_del_rey", Sport: "soccer", Label: "Copa del Rey", Group: "International"},
+
+	// Continental club competitions
+	{Key: "uefa.champions", Sport: "soccer", Label: "UEFA Champions League", Group: "International"},
+	{Key: "uefa.europa", Sport: "soccer", Label: "UEFA Europa League", Group: "International"},
+	{Key: "concacaf.champions", Sport: "soccer", Label: "Concacaf Champions Cup", Group: "International"},
+	{Key: "conmebol.libertadores", Sport: "soccer", Label: "Copa Libertadores", Group: "International"},
+	{Key: "afc.champions", Sport: "soccer", Label: "AFC Champions League Elite", Group: "International"},
+
+	// National-team tournaments
+	{Key: "fifa.world", Sport: "soccer", Label: "FIFA World Cup", Group: "International"},
+	{Key: "uefa.euro", Sport: "soccer", Label: "UEFA European Championship", Group: "International"},
+	{Key: "uefa.nations", Sport: "soccer", Label: "UEFA Nations League", Group: "International"},
+	{Key: "concacaf.gold", Sport: "soccer", Label: "Concacaf Gold Cup", Group: "International"},
+	{Key: "conmebol.america", Sport: "soccer", Label: "Copa América", Group: "International"},
+	{Key: "fifa.confederations", Sport: "soccer", Label: "FIFA Confederations Cup", Group: "International"},
+}
+
+// LeagueGroupOrder is the display ordering for the settings UI. New groups
+// added to a League definition should be appended here too.
+var LeagueGroupOrder = []string{"US Pro", "College", "International"}
+
+// LeaguesGrouped returns Leagues partitioned by Group, preserving the order
+// inside each group (which is the declaration order in Leagues).
+func LeaguesGrouped() map[string][]League {
+	out := make(map[string][]League)
+	for _, l := range Leagues {
+		out[l.Group] = append(out[l.Group], l)
+	}
+	return out
 }
 
 func LeagueByKey(key string) (League, bool) {
@@ -32,12 +95,57 @@ func LeagueByKey(key string) (League, bool) {
 }
 
 type EspnTeam struct {
-	ID           string `json:"id"`
-	Abbreviation string `json:"abbreviation"`
-	DisplayName  string `json:"displayName"`
-	Location     string `json:"location"`
-	Name         string `json:"name"`
-	LogoURL      string `json:"logo,omitempty"`
+	ID           string    `json:"id"`
+	Abbreviation string    `json:"abbreviation"`
+	DisplayName  string    `json:"displayName"`
+	Location     string    `json:"location"`
+	Name         string    `json:"name"`
+	LogoURL      string    `json:"logo,omitempty"`  // scoreboard endpoint: flat string
+	Logos        []logoRef `json:"logos,omitempty"` // teams + schedule endpoints: variants array
+}
+
+type logoRef struct {
+	Href string   `json:"href"`
+	Rel  []string `json:"rel"`
+}
+
+// Logo returns the best available logo URL for this team. Prefers the flat
+// LogoURL (set by scoreboard responses), then a Logos entry with rel=default,
+// then the first Logos entry. Returns "" if the team has no logo data.
+func (t EspnTeam) Logo() string {
+	if t.LogoURL != "" {
+		return t.LogoURL
+	}
+	if u := t.logoByRel("default"); u != "" {
+		return u
+	}
+	if len(t.Logos) > 0 {
+		return t.Logos[0].Href
+	}
+	return ""
+}
+
+// LogoDark returns ESPN's dark-mode logo variant if one is published (rel=dark,
+// typically the logo in white with no background), falling back to the default.
+// ESPN's primary_logo_on_white_color was tempting but is published as a huge
+// 4096-square canvas with the logo small inside — resizing to 16px makes the
+// logo content tiny and unreadable.
+func (t EspnTeam) LogoDark() string {
+	if u := t.logoByRel("dark"); u != "" {
+		return u
+	}
+	return t.Logo()
+}
+
+func (t EspnTeam) logoByRel(target string) string {
+	for _, l := range t.Logos {
+		for _, r := range l.Rel {
+			if r == target {
+				return l.Href
+			}
+		}
+	}
+	return ""
 }
 
 type scoreboardResponse struct {
