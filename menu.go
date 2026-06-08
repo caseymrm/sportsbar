@@ -364,8 +364,23 @@ func (m *Menu) addAnotherSubmenu() []menuet.MenuItem {
 			labelItem("No leagues enabled — see Settings → Leagues", menuet.WeightRegular),
 		}
 	}
+	return []menuet.MenuItem{
+		menuet.Search{
+			Placeholder: "Filter leagues",
+			Results: func(query string) []menuet.MenuItem {
+				return m.addAnotherResults(enabled, query)
+			},
+		},
+	}
+}
+
+func (m *Menu) addAnotherResults(enabled []League, query string) []menuet.MenuItem {
+	q := strings.ToLower(strings.TrimSpace(query))
 	items := make([]menuet.MenuItem, 0, len(enabled))
 	for _, league := range enabled {
+		if q != "" && !strings.Contains(strings.ToLower(league.Label), q) {
+			continue
+		}
 		l := league
 		items = append(items, menuet.Regular{
 			Text:     l.Label,
@@ -689,14 +704,29 @@ func leagueLabel(key string) string {
 }
 
 func (m *Menu) teamSubmenu(league League) []menuet.MenuItem {
+	return []menuet.MenuItem{
+		menuet.Search{
+			Placeholder: fmt.Sprintf("Filter %s teams", league.Label),
+			Results: func(query string) []menuet.MenuItem {
+				return m.teamResults(league, query)
+			},
+		},
+	}
+}
+
+func (m *Menu) teamResults(league League, query string) []menuet.MenuItem {
 	teams := m.teams(league)
 	if len(teams) == 0 {
 		return []menuet.MenuItem{menuet.Regular{Text: "Loading teams…"}}
 	}
 	sort.Slice(teams, func(i, j int) bool { return teams[i].DisplayName < teams[j].DisplayName })
+	q := strings.ToLower(strings.TrimSpace(query))
 	items := make([]menuet.MenuItem, 0, len(teams))
 	for _, t := range teams {
 		t := t
+		if q != "" && !strings.Contains(strings.ToLower(t.DisplayName), q) {
+			continue
+		}
 		fav := m.cfg.IsFavorite(league.Key, t.ID)
 		items = append(items, menuet.Regular{
 			Text:  t.DisplayName,
@@ -819,9 +849,24 @@ func (m *Menu) leaguesSubmenu() []menuet.MenuItem {
 }
 
 func (m *Menu) leaguesInGroup(leagues []League) []menuet.MenuItem {
+	return []menuet.MenuItem{
+		menuet.Search{
+			Placeholder: "Filter leagues",
+			Results: func(query string) []menuet.MenuItem {
+				return m.leagueGroupResults(leagues, query)
+			},
+		},
+	}
+}
+
+func (m *Menu) leagueGroupResults(leagues []League, query string) []menuet.MenuItem {
+	q := strings.ToLower(strings.TrimSpace(query))
 	items := make([]menuet.MenuItem, 0, len(leagues))
 	for _, l := range leagues {
 		l := l
+		if q != "" && !strings.Contains(strings.ToLower(l.Label), q) {
+			continue
+		}
 		enabled := m.cfg.IsLeagueEnabled(l.Key)
 		items = append(items, menuet.Regular{
 			Text:  l.Label,
