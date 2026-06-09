@@ -364,23 +364,8 @@ func (m *Menu) addAnotherSubmenu() []menuet.MenuItem {
 			labelItem("No leagues enabled — see Settings → Leagues", menuet.WeightRegular),
 		}
 	}
-	return []menuet.MenuItem{
-		menuet.Search{
-			Placeholder: "Filter leagues",
-			Results: func(query string) []menuet.MenuItem {
-				return m.addAnotherResults(enabled, query)
-			},
-		},
-	}
-}
-
-func (m *Menu) addAnotherResults(enabled []League, query string) []menuet.MenuItem {
-	q := strings.ToLower(strings.TrimSpace(query))
 	items := make([]menuet.MenuItem, 0, len(enabled))
 	for _, league := range enabled {
-		if q != "" && !strings.Contains(strings.ToLower(league.Label), q) {
-			continue
-		}
 		l := league
 		items = append(items, menuet.Regular{
 			Text:     l.Label,
