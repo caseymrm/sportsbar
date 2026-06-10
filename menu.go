@@ -107,6 +107,10 @@ func isDarkMode() bool {
 	return darkModeCached
 }
 
+// Title builds the menubar status item per the redesign's "focus + count"
+// rule: show only the single most-relevant game (FavoriteGames() is already
+// pre-sorted by relevance) and collapse the rest into a dim " +N" tail. The
+// leading status-item Image is that game's favorite-team logo.
 func (m *Menu) Title() *menuet.MenuState {
 	games := m.p.FavoriteGames()
 	favs := m.cfg.Favorites()
@@ -120,16 +124,18 @@ func (m *Menu) Title() *menuet.MenuState {
 		return state
 	}
 	now := time.Now()
-	parts := make([]string, 0, len(games))
-	for _, g := range games {
-		abbr := favoriteAbbrInGame(g, favs)
-		revealed := m.cfg.Revealed(g)
-		parts = append(parts, g.TitleSlot(abbr, revealed, now))
+	top := games[0]
+	topFav, hasFav := favoriteInGame(top, favs)
+	favTeamID := topFav.TeamID
+	revealed := m.cfg.Revealed(top)
+
+	runs := top.TitleRuns(favTeamID, revealed, now)
+	if extra := len(games) - 1; extra > 0 {
+		runs = append(runs, r(fmt.Sprintf("  +%d", extra), ter11))
 	}
-	// The first game is the most relevant (FavoriteGames is pre-sorted) —
-	// surface its favorite team's logo in the menubar's single image slot.
-	state := &menuet.MenuState{Title: strings.Join(parts, " | ")}
-	if topFav, ok := favoriteInGame(games[0], favs); ok {
+
+	state := &menuet.MenuState{Runs: runs}
+	if hasFav {
 		state.Image = m.favoriteLogoURL(topFav)
 	}
 	return state
@@ -142,20 +148,6 @@ func favoriteInGame(g Game, favs []Favorite) (Favorite, bool) {
 		}
 	}
 	return Favorite{}, false
-}
-
-func favoriteAbbrInGame(g Game, favs []Favorite) string {
-	for _, f := range favs {
-		if f.League == g.LeagueKey {
-			if f.TeamID == g.Home.ID {
-				return g.Home.Abbreviation
-			}
-			if f.TeamID == g.Away.ID {
-				return g.Away.Abbreviation
-			}
-		}
-	}
-	return g.Home.Abbreviation
 }
 
 func (m *Menu) Children() []menuet.MenuItem {
@@ -185,15 +177,27 @@ func (m *Menu) Children() []menuet.MenuItem {
 		if len(games) == 0 {
 			items = append(items, labelItem("No games for your teams today", menuet.WeightRegular))
 		} else {
+			// Track whether we've already placed a LIVE badge so at most one
+			// row in the dropdown carries it — per the design's "one pill max
+			// keeps the badge meaningful" rule. FavoriteGames is pre-sorted
+			// by relevance (live first), so the first live game wins.
+			badgePlaced := false
 			for _, g := range games {
-				items = append(items, m.gameItem(g, now))
+				withBadge := !badgePlaced && g.State == StateLive
+				if withBadge {
+					badgePlaced = true
+				}
+				items = append(items, m.gameItem(g, now, withBadge))
 			}
 		}
 		items = append(items, menuet.Separator{})
 		for _, f := range favs {
 			f := f
+			// Per the redesign: drop the (LEAGUE) suffix on favorite rows —
+			// if it's your favorite you already know its league. League tags
+			// stay on the *game* rows where opponent context still earns them.
 			items = append(items, menuet.Regular{
-				Text:     fmt.Sprintf("%s (%s)", f.Name, leagueLabel(f.League)),
+				Text:     f.Name,
 				Image:    m.favoriteLogoForMenuURL(f),
 				Children: func() []menuet.MenuItem { return m.favoriteTeamSubmenu(f) },
 			})
@@ -214,29 +218,151 @@ func (m *Menu) Children() []menuet.MenuItem {
 	return items
 }
 
-func (m *Menu) gameItem(g Game, now time.Time) menuet.MenuItem {
+// gameItem renders one row of the main dropdown per the redesign:
+//   - 20px team logo (Image)
+//   - rich-text matchup as Runs
+//   - dim Subtitle with league + state / time / affordance
+//
+// withLiveBadge appends a trailing LIVE pill to live games — the caller
+// passes true only for the single most-relevant live game in the menu so we
+// don't end up with multiple badges (one pill max, per the design).
+func (m *Menu) gameItem(g Game, now time.Time, withLiveBadge bool) menuet.MenuItem {
 	revealed := m.cfg.Revealed(g)
-	var label string
-	if revealed {
-		label = g.SummaryRevealed(now)
-		// Prefix the favorite team's W/L outcome for finals. For a game between
-		// two favorites we pick the first that matches — arbitrary but stable.
-		for _, f := range m.cfg.Favorites() {
-			if g.InvolvesTeam(f.League, f.TeamID) {
-				if o := g.OutcomeForTeam(f.TeamID); o != "" {
-					label = o + " · " + label
-				}
-				break
-			}
+	favTeamID := ""
+	for _, f := range m.cfg.Favorites() {
+		if g.InvolvesTeam(f.League, f.TeamID) {
+			favTeamID = f.TeamID
+			break
 		}
-	} else {
-		label = g.SummaryHidden(now)
 	}
+
+	runs := dropdownGameRuns(g, favTeamID, revealed)
+	if withLiveBadge && g.State == StateLive {
+		runs = append(runs, r("  ", runOpts{}), r("LIVE", runOpts{
+			color: menuet.SystemRed,
+			badge: true,
+		}))
+	}
+
+	subtitle := dropdownGameSubtitle(g, revealed, now)
+
 	gid := g.ID
-	return menuet.Regular{
-		Text:     fmt.Sprintf("%s · %s", g.LeagueLabel, label),
+	item := menuet.Regular{
+		Runs:     runs,
+		Subtitle: subtitle,
 		Children: func() []menuet.MenuItem { return m.gameSubmenu(gid) },
 	}
+	if favTeamID != "" {
+		// 20px logo via the local logo server so it gets the white-disc
+		// composite that survives translucent menu backgrounds.
+		if u := m.logos.URL(g.LeagueKey, favTeamID); u != "" {
+			item.Image = u
+		}
+	}
+	return item
+}
+
+// dropdownGameRuns builds the primary (top-line) runs for a dropdown row.
+// Matches the JSX twoLine.primary patterns in DropdownV2 / variants-v2.jsx:
+//
+//	live revealed   : OUR ·semibold S·bold·mono  – ·tertiary T·sec·mono  OPP·sec
+//	live hidden     : OUR @ OPP ·secondary
+//	final revealed  : OUR ·semibold S·bold·mono  – ·tertiary T·sec·mono  OPP·sec  (won)
+//	                  OUR ·sec·mono S·sec·mono  – ·tertiary T·bold·mono  OPP·sec   (lost)
+//	final hidden    : OUR @ OPP ·secondary
+//	upcoming        : OUR @ OPP
+func dropdownGameRuns(g Game, favTeamID string, revealed bool) []menuet.TextRun {
+	ourAbbr, oppAbbr := favAndOpponentAbbr(g, favTeamID)
+
+	switch g.State {
+	case StateUpcoming:
+		return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, runOpts{})}
+
+	case StateLive:
+		if !revealed {
+			return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, sec)}
+		}
+		ourScore, theirScore := scoresFor(g, favTeamID)
+		return []menuet.TextRun{
+			r(ourAbbr+" ", semibold),
+			r(fmt.Sprintf("%d", ourScore), monoBold),
+			r(" – ", ter),
+			r(fmt.Sprintf("%d", theirScore), monoSec),
+			r(" "+oppAbbr, sec),
+		}
+
+	case StateFinal:
+		if !revealed {
+			return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, sec)}
+		}
+		ourScore, theirScore := scoresFor(g, favTeamID)
+		if ourScore >= theirScore {
+			return []menuet.TextRun{
+				r(ourAbbr+" ", semibold),
+				r(fmt.Sprintf("%d", ourScore), monoBold),
+				r(" – ", ter),
+				r(fmt.Sprintf("%d", theirScore), monoSec),
+				r(" "+oppAbbr, sec),
+			}
+		}
+		// Loss: our side takes the quiet voice; opponent's score is bold.
+		return []menuet.TextRun{
+			r(ourAbbr+" ", sec),
+			r(fmt.Sprintf("%d", ourScore), monoSec),
+			r(" – ", ter),
+			r(fmt.Sprintf("%d", theirScore), monoBold),
+			r(" "+oppAbbr, sec),
+		}
+	}
+	return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, runOpts{})}
+}
+
+// dropdownGameSubtitle builds the dim second-line text per state:
+//
+//	live           : NBA · Q3 5:42
+//	final hidden   : MLB · Final · reveal score
+//	final revealed : MLB · Final · was Fri
+//	upcoming       : NFL · Sun 1:25 PM
+//
+// NSMenuItem.subtitle ignores per-run colors (the system applies its own
+// "subtitle" styling), so we emit a single concatenated run with " · "
+// joiners — the visible separators here are intentional because we're not
+// styling the chunks distinctly.
+func dropdownGameSubtitle(g Game, revealed bool, now time.Time) []menuet.TextRun {
+	parts := []string{g.LeagueLabel}
+	switch g.State {
+	case StateLive:
+		parts = append(parts, liveDetailLabel(g))
+	case StateFinal:
+		if revealed {
+			parts = append(parts, "Final", pastWithVerb("", g.endTimeEstimate(), now))
+		} else {
+			parts = append(parts, "Final", "reveal score")
+		}
+	case StateUpcoming:
+		parts = append(parts, upcomingWhenLabel(g.Start, now))
+	}
+	// Drop any empty fragments — pastWithVerb with an empty verb returns
+	// "just now" / weekday / date and never empty, but defensive anyway.
+	clean := parts[:0]
+	for _, p := range parts {
+		if p != "" {
+			clean = append(clean, p)
+		}
+	}
+	return []menuet.TextRun{{Text: strings.Join(clean, " · ")}}
+}
+
+// liveDetailLabel returns ShortDetail if ESPN supplied one (e.g. "Q3 5:42"),
+// otherwise a derived Q{N} {clock}.
+func liveDetailLabel(g Game) string {
+	if g.ShortDetail != "" {
+		return g.ShortDetail
+	}
+	if g.Period > 0 && g.Clock != "" {
+		return fmt.Sprintf("Q%d %s", g.Period, g.Clock)
+	}
+	return "live"
 }
 
 func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
@@ -255,15 +381,37 @@ func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
 	if !found {
 		return []menuet.MenuItem{labelItem("Game no longer available", menuet.WeightRegular)}
 	}
-	now := time.Now()
-	revealed := m.cfg.Revealed(g)
+	return m.quietScoreboardSubmenu(g)
+}
 
+// quietScoreboardSubmenu builds the redesign's "quiet scoreboard" game-detail
+// submenu (variants-submenu.jsx → GameSubmenu1):
+//
+//	OUR @ THEM   NBA          ← matchup·bold + league·tertiary·11
+//	[logo] AWAY   68          ← mono, secondary if trailer
+//	[logo] HOME   71          ← mono, bold if leader
+//	● Q3 5:42                 ← only when live, both runs systemRed
+//	─────────
+//	Hide / Show scores
+//	─────────
+//	Open in ESPN
+func (m *Menu) quietScoreboardSubmenu(g Game) []menuet.MenuItem {
+	revealed := m.cfg.Revealed(g)
 	items := []menuet.MenuItem{
-		labelItem(g.Matchup(), menuet.WeightBold),
+		menuet.Regular{
+			Runs: []menuet.TextRun{
+				r(g.Matchup(), bold),
+				r("  "+g.LeagueLabel, ter11),
+			},
+			Clicked: func() {}, // keep enabled-looking (not greyed)
+		},
 	}
-	if revealed {
-		items = append(items, scoreLines(g)...)
-		items = append(items, labelItem(gameTimeLabel(g, now), menuet.WeightRegular))
+	if revealed && g.State != StateUpcoming {
+		items = append(items, m.teamScoreRow(g, g.Away, g.AwayScore, g.AwayScore > g.HomeScore))
+		items = append(items, m.teamScoreRow(g, g.Home, g.HomeScore, g.HomeScore > g.AwayScore))
+		if g.State == StateLive {
+			items = append(items, liveClockRow(g))
+		}
 		items = append(items, menuet.Separator{})
 		items = append(items, menuet.Regular{
 			Text: "Hide scores",
@@ -274,7 +422,10 @@ func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
 			},
 		})
 	} else if g.State != StateUpcoming {
-		items = append(items, labelItem(g.SummaryHidden(now), menuet.WeightRegular))
+		items = append(items, menuet.Regular{
+			Runs:    []menuet.TextRun{r(g.SummaryHidden(time.Now()), sec)},
+			Clicked: func() {},
+		})
 		items = append(items, menuet.Separator{})
 		items = append(items, menuet.Regular{
 			Text: "Show scores",
@@ -285,27 +436,53 @@ func (m *Menu) gameSubmenu(gameID string) []menuet.MenuItem {
 			},
 		})
 	} else {
-		items = append(items, labelItem(g.SummaryHidden(now), menuet.WeightRegular))
+		items = append(items, menuet.Regular{
+			Runs:    []menuet.TextRun{r(g.SummaryHidden(time.Now()), sec)},
+			Clicked: func() {},
+		})
 	}
 	items = appendOpenInESPN(items, g)
 	return items
 }
 
-// gameTimeLabel produces the time-context line shown in a game submenu:
-// "Q3 5:42" for live, "ended Mon" for finals, "on Tue" for upcoming.
-func gameTimeLabel(g Game, now time.Time) string {
-	switch g.State {
-	case StateLive:
-		if g.ShortDetail != "" {
-			return g.ShortDetail
-		}
-		return fmt.Sprintf("Q%d %s", g.Period, g.Clock)
-	case StateFinal:
-		return pastWithVerb("ended", g.endTimeEstimate(), now)
-	case StateUpcoming:
-		return relativeFuture(g.Start, now)
+// teamScoreRow renders one team's line in the quiet scoreboard: 16px logo,
+// abbr (mono, bold if leader / sec if trailer), and a right-padded score.
+func (m *Menu) teamScoreRow(g Game, team EspnTeam, score int, leader bool) menuet.MenuItem {
+	style := monoSec
+	if leader {
+		style = monoBold
 	}
-	return ""
+	row := menuet.Regular{
+		Runs: []menuet.TextRun{
+			r(team.Abbreviation, style),
+			r("   "+fmt.Sprintf("%d", score), style),
+		},
+		Clicked: func() {},
+	}
+	if u := m.logos.URL(g.LeagueKey, team.ID); u != "" {
+		row.Image = u
+	}
+	return row
+}
+
+// liveClockRow is the per-quarter clock line under the team scores. Both runs
+// take SystemRed so the row reads as the "live" beat — the only red in the
+// otherwise quiet scoreboard.
+func liveClockRow(g Game) menuet.MenuItem {
+	clock := g.ShortDetail
+	if clock == "" && g.Period > 0 {
+		clock = fmt.Sprintf("Q%d %s", g.Period, g.Clock)
+	}
+	if clock == "" {
+		clock = "live"
+	}
+	return menuet.Regular{
+		Runs: []menuet.TextRun{
+			r("● ", runOpts{color: menuet.SystemRed, size: 10}),
+			r(clock, runOpts{color: menuet.SystemRed, mono: true}),
+		},
+		Clicked: func() {},
+	}
 }
 
 // appendOpenInESPN adds a separator + "Open in ESPN" item if a Gamecast link
@@ -340,20 +517,13 @@ func labelItem(text string, weight menuet.FontWeight) menuet.MenuItem {
 	}
 }
 
-// scoreLines renders one labelItem per team (away first, then home) with the
-// winner / current leader's line bolded. menuet supports only one FontWeight
-// per item so we get bold-on-winner by separating teams onto their own lines.
-func scoreLines(g Game) []menuet.MenuItem {
-	winner, _, decisive := g.Winner()
-	weightFor := func(t EspnTeam) menuet.FontWeight {
-		if decisive && t.ID == winner.ID {
-			return menuet.WeightBold
-		}
-		return menuet.WeightRegular
-	}
-	return []menuet.MenuItem{
-		labelItem(fmt.Sprintf("%s %d", g.Away.Abbreviation, g.AwayScore), weightFor(g.Away)),
-		labelItem(fmt.Sprintf("%s %d", g.Home.Abbreviation, g.HomeScore), weightFor(g.Home)),
+// sectionHeader renders a small-caps section label per the redesign — 11px
+// tertiary, e.g. "RECENT" / "UPCOMING" / "SCORES" / "NOTIFICATIONS". Stays
+// greyed (no Clicked) because it isn't interactive; the secondary-tone color
+// is what makes it read as a header rather than disabled noise.
+func sectionHeader(text string) menuet.MenuItem {
+	return menuet.Regular{
+		Runs: []menuet.TextRun{r(text, ter11)},
 	}
 }
 
@@ -434,13 +604,13 @@ func (m *Menu) favoriteTeamSubmenu(f Favorite) []menuet.MenuItem {
 		items = append(items, labelItem("Loading schedule…", menuet.WeightRegular))
 	}
 	if len(recent) > 0 {
-		items = append(items, menuet.Regular{Text: "Recent", FontWeight: menuet.WeightSemibold})
+		items = append(items, sectionHeader("RECENT"))
 		for _, g := range recent {
 			items = append(items, m.scheduleGameItem(g, now, f.TeamID))
 		}
 	}
 	if len(upcoming) > 0 {
-		items = append(items, menuet.Regular{Text: "Upcoming", FontWeight: menuet.WeightSemibold})
+		items = append(items, sectionHeader("UPCOMING"))
 		for _, g := range upcoming {
 			items = append(items, m.scheduleGameItem(g, now, f.TeamID))
 		}
@@ -567,26 +737,129 @@ func (m *Menu) prefChoiceSubmenu(f Favorite, field PrefField, globalVal bool) []
 // formatting as a top-level game. Final scores hide unless revealed; upcoming
 // games have no score so show plain. When revealed, the favorite team's W/L
 // outcome is prefixed.
+// scheduleGameItem renders one row in a team's Recent or Upcoming list.
+// Ports the schedRow / upRow builders from design_handoff/variants-v2.jsx.
+// Finals use a fixed-column scoreboard layout (W/L/? heavy result + two
+// mono-padded score blocks + dim day column); upcoming rows use a left-
+// indented "OUR @ OPP" form with a day/time tail.
 func (m *Menu) scheduleGameItem(g Game, now time.Time, favTeamID string) menuet.MenuItem {
 	revealed := m.cfg.Revealed(g)
-	var label string
-	if revealed {
-		label = g.SummaryRevealed(now)
-		if o := g.OutcomeForTeam(favTeamID); o != "" {
-			label = o + " · " + label
-		}
-	} else {
-		label = g.SummaryHidden(now)
+	var runs []menuet.TextRun
+	switch g.State {
+	case StateFinal:
+		runs = schedFinalRow(g, favTeamID, revealed)
+	case StateUpcoming:
+		runs = schedUpcomingRow(g, favTeamID, now)
+	default:
+		runs = schedFinalRow(g, favTeamID, revealed) // live in a schedule list is rare
 	}
 	gid := g.ID
 	return menuet.Regular{
-		Text:     label,
+		Runs:     runs,
 		Children: func() []menuet.MenuItem { return m.scheduleGameSubmenu(gid) },
 	}
 }
 
+// schedFinalRow ports schedRow() from variants-v2.jsx — the canonical mono
+// scoreboard with W/L/? result column and right-aligned 3-char score fields.
+//
+//	result(2)  [TEAM(3) score→3]  gap(2)  [OPP(3) score→3]  gap(3)  day
+//
+// Padding the team abbreviation right and the score left keeps the columns
+// stable across 1-, 2-, and 3-digit scores AND 2- vs 3-letter abbrs — the
+// thing that makes basketball (98 / 112 / 121) and baseball (3 / 5 / 11)
+// stack the same way without tab stops.
+func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
+	ourAbbr, oppAbbr := favAndOpponentAbbr(g, favTeamID)
+	ourScore, oppScore := scoresFor(g, favTeamID)
+	hidden := !revealed
+	won := ourScore > oppScore
+
+	var result menuet.TextRun
+	var ourStyle, oppStyle runOpts
+	switch {
+	case hidden:
+		result = r("? ", runOpts{mono: true, color: menuet.LabelQuaternary, weight: menuet.WeightHeavy})
+		ourStyle = monoSec
+		oppStyle = monoSec
+	case won:
+		result = r("W ", runOpts{mono: true, color: menuet.SystemGreen, weight: menuet.WeightHeavy})
+		ourStyle = monoBold
+		oppStyle = monoSec
+	default:
+		result = r("L ", runOpts{mono: true, color: menuet.SystemRed, weight: menuet.WeightHeavy})
+		ourStyle = monoSec
+		oppStyle = monoBold
+	}
+
+	ourScoreText := fmt.Sprintf("%d", ourScore)
+	oppScoreText := fmt.Sprintf("%d", oppScore)
+	if hidden {
+		ourScoreText = "?"
+		oppScoreText = "?"
+	}
+
+	// Per JSX: when hidden the score-slot run carries the quaternary veil
+	// color on top of the team's secondary tone, so the `?` reads quieter
+	// than the abbreviation beside it.
+	veiledStyle := runOpts{mono: true, color: menuet.LabelQuaternary}
+	ourNumStyle := ourStyle
+	oppNumStyle := oppStyle
+	if hidden {
+		ourNumStyle = veiledStyle
+		oppNumStyle = veiledStyle
+	}
+
+	day := scheduleDayLabel(g.Start)
+	return []menuet.TextRun{
+		result,
+		r(padR(ourAbbr, 3)+" ", withMono(ourStyle)),
+		r(padL(ourScoreText, 3), withMono(ourNumStyle)),
+		r("  "+padR(oppAbbr, 3)+" ", withMono(oppStyle)),
+		r(padL(oppScoreText, 3), withMono(oppNumStyle)),
+		r("   "+day, monoTerTiny),
+	}
+}
+
+// schedUpcomingRow ports upRow() — no score, two-space left indent to share
+// the result column's margin, day + time tail in tertiary.
+func schedUpcomingRow(g Game, favTeamID string, now time.Time) []menuet.TextRun {
+	ourAbbr, oppAbbr := favAndOpponentAbbr(g, favTeamID)
+	when := upcomingWhenLabel(g.Start, now)
+	return []menuet.TextRun{
+		r("  ", runOpts{mono: true}),
+		r(ourAbbr+" @ "+oppAbbr, runOpts{mono: true}),
+		r("   "+when, monoTerTiny),
+	}
+}
+
+// scheduleDayLabel returns the day-of-week for the row's far-right column,
+// in three-letter uppercase per the design ("FRI", "MON").
+func scheduleDayLabel(t time.Time) string {
+	return strings.ToUpper(t.Local().Format("Mon"))
+}
+
+// upcomingWhenLabel returns "Thu 7:30pm"-style text for upcoming rows.
+// Uses 12-hour time, lowercase am/pm to match the design.
+func upcomingWhenLabel(start, now time.Time) string {
+	t := start.Local()
+	weekday := t.Format("Mon")
+	clock := t.Format("3:04pm")
+	return weekday + " " + clock
+}
+
+// withMono ensures Monospaced is set on a runOpts even if the caller passed
+// a token (sec/bold/heavy) that didn't include it. Avoids accidentally
+// dropping mono when reusing the secondary color alias.
+func withMono(o runOpts) runOpts {
+	o.mono = true
+	return o
+}
+
 // scheduleGameSubmenu mirrors gameSubmenu but resolves the game from the
-// schedule cache instead of the live snapshot.
+// schedule cache instead of the live snapshot. Reuses the same quiet
+// scoreboard layout for visual consistency between today's games and
+// schedule entries.
 func (m *Menu) scheduleGameSubmenu(gameID string) []menuet.MenuItem {
 	var g Game
 	found := false
@@ -607,37 +880,7 @@ func (m *Menu) scheduleGameSubmenu(gameID string) []menuet.MenuItem {
 	if !found {
 		return []menuet.MenuItem{labelItem("Game no longer available", menuet.WeightRegular)}
 	}
-	now := time.Now()
-	revealed := m.cfg.Revealed(g)
-	items := []menuet.MenuItem{
-		labelItem(g.Matchup(), menuet.WeightBold),
-	}
-	if revealed {
-		items = append(items, scoreLines(g)...)
-		items = append(items, labelItem(gameTimeLabel(g, now), menuet.WeightRegular))
-		items = append(items, menuet.Separator{})
-		items = append(items, menuet.Regular{
-			Text: "Hide scores",
-			Clicked: func() {
-				m.cfg.Hide(g.ID)
-				menuet.App().MenuChanged()
-			},
-		})
-	} else if g.State == StateFinal {
-		items = append(items, labelItem(g.SummaryHidden(now), menuet.WeightRegular))
-		items = append(items, menuet.Separator{})
-		items = append(items, menuet.Regular{
-			Text: "Show scores",
-			Clicked: func() {
-				m.cfg.Reveal(g.ID)
-				menuet.App().MenuChanged()
-			},
-		})
-	} else {
-		items = append(items, labelItem(g.SummaryHidden(now), menuet.WeightRegular))
-	}
-	items = appendOpenInESPN(items, g)
-	return items
+	return m.quietScoreboardSubmenu(g)
 }
 
 // teamSchedule returns the cached schedule for a team, kicking off a refresh
@@ -764,8 +1007,19 @@ func (m *Menu) teams(league League) []EspnTeam {
 	return cached
 }
 
+// settingsSubmenu ports SettingsMenu from variants-submenu.jsx — small-caps
+// section headers replace separators, row labels become terse two-word
+// phrases, and parenthetical context becomes a dim 11px tertiary run appended
+// to the row.
 func (m *Menu) settingsSubmenu() []menuet.MenuItem {
+	enabledTotal := 0
+	for _, l := range Leagues {
+		if m.cfg.IsLeagueEnabled(l.Key) {
+			enabledTotal++
+		}
+	}
 	return []menuet.MenuItem{
+		sectionHeader("SCORES"),
 		menuet.Regular{
 			Text:  "Show scores by default",
 			State: m.cfg.ScoresByDefault(),
@@ -775,9 +1029,9 @@ func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 				m.refreshTitle()
 			},
 		},
-		menuet.Separator{},
+		sectionHeader("NOTIFICATIONS"),
 		menuet.Regular{
-			Text:  "Notify when game starts",
+			Text:  "Game starts",
 			State: m.cfg.NotifyGameStart(),
 			Clicked: func() {
 				m.cfg.SetNotifyGameStart(!m.cfg.NotifyGameStart())
@@ -785,7 +1039,7 @@ func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 			},
 		},
 		menuet.Regular{
-			Text:  "Notify when game ends",
+			Text:  "Game ends",
 			State: m.cfg.NotifyGameEnd(),
 			Clicked: func() {
 				m.cfg.SetNotifyGameEnd(!m.cfg.NotifyGameEnd())
@@ -793,7 +1047,10 @@ func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 			},
 		},
 		menuet.Regular{
-			Text:  "Notify on lead change (revealed games only)",
+			Runs: []menuet.TextRun{
+				r("Lead changes", runOpts{}),
+				r("  revealed games only", ter11),
+			},
 			State: m.cfg.NotifyLeadChange(),
 			Clicked: func() {
 				m.cfg.SetNotifyLeadChange(!m.cfg.NotifyLeadChange())
@@ -802,7 +1059,10 @@ func (m *Menu) settingsSubmenu() []menuet.MenuItem {
 		},
 		menuet.Separator{},
 		menuet.Regular{
-			Text:     "Leagues",
+			Runs: []menuet.TextRun{
+				r("Leagues", runOpts{}),
+				r(fmt.Sprintf("  %d of %d enabled", enabledTotal, len(Leagues)), ter11),
+			},
 			Children: m.leaguesSubmenu,
 		},
 	}

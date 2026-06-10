@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"time"
+
+	"github.com/caseymrm/menuet/v2"
 )
 
 type GameState int
@@ -84,56 +86,118 @@ func (g Game) Winner() (team EspnTeam, score int, decisive bool) {
 	return EspnTeam{}, 0, false
 }
 
-// OutcomeForTeam returns "W" if the given team won, "L" if they lost, "" if
-// the game isn't final, is tied, or the team isn't in this game. Used to
-// prefix recent-list labels with the favorite's result.
-func (g Game) OutcomeForTeam(teamID string) string {
-	if g.State != StateFinal || g.HomeScore == g.AwayScore {
-		return ""
-	}
-	homeWon := g.HomeScore > g.AwayScore
-	switch teamID {
-	case g.Home.ID:
-		if homeWon {
-			return "W"
+// (OutcomeForTeam removed — the W/L marker now lives in the schedRow / title
+// runs themselves rather than as a string prefix on the row label.)
+
+// TitleRuns builds the menubar-title text runs for one game. Ports the
+// state machine in design_handoff/variants-v2.jsx → titleStates. favTeamID
+// anchors which side is "ours" so the runs can split into "our identity",
+// "our score" (bold mono), and the opponent (secondary). revealed gates
+// whether scores appear at all.
+//
+// State table (▸ marks run boundaries):
+//
+//	pregame        : GSW–MIN·semibold ▸  7:30pm·secondary
+//	live·revealed  : ● ·red ▸ GSW ·semibold ▸ 71·bold-mono ▸ –68·sec-mono ▸  MIN·sec
+//	live·hidden    : ● ·red ▸ GSW–MIN·semibold ▸  Q3·secondary
+//	final·won      : W ·green·heavy ▸ GSW ·semibold ▸ 112·bold-mono ▸ –104·sec-mono ▸  MIN·sec
+//	final·lost     : L ·red·heavy   ▸ GSW ·semibold ▸ 104·sec-mono  ▸ –112·bold-mono ▸  MIN·sec
+//	final·hidden   : GSW–MIN·secondary ▸  ended 2h·tertiary
+//
+// "Our score leads" (bold), opponent's score takes the same secondary voice
+// as the opponent abbreviation — quiet team, quiet number.
+func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet.TextRun {
+	favAbbr, oppAbbr := favAndOpponentAbbr(g, favTeamID)
+
+	switch g.State {
+	case StateUpcoming:
+		return []menuet.TextRun{
+			r(favAbbr+"–"+oppAbbr, semibold),
+			r(" "+relativeFutureShort(g.Start, now), sec),
 		}
-		return "L"
-	case g.Away.ID:
-		if homeWon {
-			return "L"
+
+	case StateLive:
+		if revealed {
+			ourScore, theirScore := scoresFor(g, favTeamID)
+			return []menuet.TextRun{
+				r("● ", red),
+				r(favAbbr+" ", semibold),
+				r(fmt.Sprintf("%d", ourScore), monoBold),
+				r(fmt.Sprintf("–%d", theirScore), monoSec),
+				r(" "+oppAbbr, sec),
+			}
 		}
-		return "W"
+		return []menuet.TextRun{
+			r("● ", red),
+			r(favAbbr+"–"+oppAbbr, semibold),
+			r(" "+liveClock(g), sec),
+		}
+
+	case StateFinal:
+		if !revealed {
+			return []menuet.TextRun{
+				r(favAbbr+"–"+oppAbbr, sec),
+				r(" "+pastWithVerb("ended", g.endTimeEstimate(), now), ter),
+			}
+		}
+		ourScore, theirScore := scoresFor(g, favTeamID)
+		won := ourScore > theirScore
+		// Loud W/L letter; matchup runs invert their bold/secondary based on outcome.
+		var marker menuet.TextRun
+		var ourStyle, theirStyle runOpts
+		if won {
+			marker = r("W ", runOpts{color: menuet.SystemGreen, weight: menuet.WeightHeavy})
+			ourStyle = monoBold
+			theirStyle = monoSec
+		} else {
+			marker = r("L ", runOpts{color: menuet.SystemRed, weight: menuet.WeightHeavy})
+			ourStyle = monoSec
+			theirStyle = monoBold
+		}
+		return []menuet.TextRun{
+			marker,
+			r(favAbbr+" ", semibold),
+			r(fmt.Sprintf("%d", ourScore), ourStyle),
+			r(fmt.Sprintf("–%d", theirScore), theirStyle),
+			r(" "+oppAbbr, sec),
+		}
 	}
-	return ""
+	return []menuet.TextRun{r(favAbbr, runOpts{})}
 }
 
-// TitleSlot is the compact menubar-title form. favAbbr anchors which side
-// of the matchup is the user's team. Live games are prefixed with "●" so the
-// in-progress state is glanceable, not just inferable from the verb.
-func (g Game) TitleSlot(favAbbr string, revealed bool, now time.Time) string {
-	var body string
-	if revealed && g.State != StateUpcoming {
-		if favAbbr == g.Home.Abbreviation {
-			body = fmt.Sprintf("%s %d-%d %s", g.Home.Abbreviation, g.HomeScore, g.AwayScore, g.Away.Abbreviation)
-		} else {
-			body = fmt.Sprintf("%s %d-%d %s", g.Away.Abbreviation, g.AwayScore, g.HomeScore, g.Home.Abbreviation)
-		}
-	} else {
-		switch g.State {
-		case StateUpcoming:
-			body = fmt.Sprintf("%s · %s", favAbbr, relativeFutureShort(g.Start, now))
-		case StateLive:
-			body = fmt.Sprintf("%s · %s", favAbbr, pastWithVerb("live", g.Start, now))
-		case StateFinal:
-			body = fmt.Sprintf("%s · %s", favAbbr, pastWithVerb("ended", g.endTimeEstimate(), now))
-		default:
-			body = favAbbr
-		}
+// favAndOpponentAbbr returns the favorite team's abbreviation and the
+// opponent's, in that order. If the favorite isn't in the game (shouldn't
+// happen for games drawn from FavoriteGames) falls back to home/away.
+func favAndOpponentAbbr(g Game, favTeamID string) (string, string) {
+	if g.Home.ID == favTeamID {
+		return g.Home.Abbreviation, g.Away.Abbreviation
 	}
-	if g.State == StateLive {
-		return "● " + body
+	if g.Away.ID == favTeamID {
+		return g.Away.Abbreviation, g.Home.Abbreviation
 	}
-	return body
+	return g.Home.Abbreviation, g.Away.Abbreviation
+}
+
+// scoresFor returns (ourScore, theirScore) given the favorite team.
+func scoresFor(g Game, favTeamID string) (int, int) {
+	if g.Home.ID == favTeamID {
+		return g.HomeScore, g.AwayScore
+	}
+	return g.AwayScore, g.HomeScore
+}
+
+// liveClock returns a compact in-progress label like "Q3" or "5:42" — used
+// only in the hidden-live menubar slot where we can't reveal the score but
+// want to convey "this game is in progress, somewhere in here". Prefers a
+// quarter/half label when available because it leaks less than displayClock.
+func liveClock(g Game) string {
+	if g.Period > 0 {
+		return fmt.Sprintf("Q%d", g.Period)
+	}
+	if g.Clock != "" {
+		return g.Clock
+	}
+	return "live"
 }
 
 // ESPN's basic scoreboard feed has no actual end timestamp. Approximating
