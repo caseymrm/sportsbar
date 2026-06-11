@@ -160,12 +160,16 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 			theirScoreStyle = goldWinnerStyle(menuet.WeightBold, true)
 			oppAbbrStyle = goldWinnerStyle(menuet.WeightRegular, false)
 		}
+		// Runs are split so the underline only sits under letters and digits
+		// — the gap spaces and the center "–" stay untreated.
 		return []menuet.TextRun{
-			r(favAbbr+" ", ourAbbrStyle),
+			r(favAbbr, ourAbbrStyle),
+			r(" ", runOpts{}),
 			r(fmt.Sprintf("%d", ourScore), ourScoreStyle),
 			r("–", runOpts{mono: true}),
 			r(fmt.Sprintf("%d", theirScore), theirScoreStyle),
-			r(" "+oppAbbr, oppAbbrStyle),
+			r(" ", runOpts{}),
+			r(oppAbbr, oppAbbrStyle),
 		}
 	}
 	return []menuet.TextRun{r(favAbbr, runOpts{})}
