@@ -100,9 +100,14 @@ var titleGold = menuet.Color{R: 200, G: 165, B: 70, A: 255}
 // text, separately from the gold foreground tint. The halo color is a
 // brighter gold than the foreground so the glow reads as light spilling
 // off the letters rather than a smudged copy.
+//
+// Dialed down from the initial Blur=6 / A=200: that was readable in the
+// dropdown but smudged the letters in the small menubar title. Blur=3 and
+// alpha 110 leaves a hint of warmth around the glyphs without bleeding
+// into them.
 var winnerHalo = &menuet.Shadow{
-	Color: menuet.Color{R: 255, G: 220, B: 100, A: 200},
-	Blur:  6,
+	Color: menuet.Color{R: 255, G: 220, B: 100, A: 110},
+	Blur:  3,
 }
 
 // goldWinnerStyle is the canonical runOpts for any "this side won" run —
