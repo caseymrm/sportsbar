@@ -144,19 +144,18 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)
 		won := ourScore > theirScore
-		// Subtle outcome tint — desaturated muted greens / reds rather than
-		// SystemGreen/SystemRed (which read as alert colors). Fixed RGBA so
-		// the tone stays consistent across the menubar's translucent
-		// backgrounds; the system's own text color carries dark-mode
-		// adaptation for the dash and the digits' weight.
+		// Only the winner gets a treatment — a subtle gold tint + WeightBold.
+		// Loser side is plain default text, so there's no marker at all on a
+		// loss (nothing punitive in the menubar). Identity weight on our
+		// abbr stays Semibold either way.
 		var ourColor, theirColor menuet.Color
 		var ourWeight, theirWeight menuet.FontWeight
 		if won {
-			ourColor, ourWeight = titleWin, menuet.WeightBold
-			theirColor, theirWeight = titleLoss, menuet.WeightRegular
+			ourColor, ourWeight = titleGold, menuet.WeightBold
+			theirColor, theirWeight = menuet.Color{}, menuet.WeightRegular
 		} else {
-			ourColor, ourWeight = titleLoss, menuet.WeightRegular
-			theirColor, theirWeight = titleWin, menuet.WeightBold
+			ourColor, ourWeight = menuet.Color{}, menuet.WeightRegular
+			theirColor, theirWeight = titleGold, menuet.WeightBold
 		}
 		return []menuet.TextRun{
 			r(favAbbr+" ", runOpts{color: ourColor, weight: menuet.WeightSemibold}),
