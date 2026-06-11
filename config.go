@@ -17,6 +17,7 @@ const (
 	keyNotifyGameEnd    = "sportsbar.notifyGameEnd"
 	keyNotifyLeadChange = "sportsbar.notifyLeadChange"
 	keyInitialized      = "sportsbar.initialized"
+	keyNotifsForcedOn   = "sportsbar.notifsForcedOn.v1"
 )
 
 // DefaultEnabledLeagues is the seed set installed on first launch — the four
@@ -95,6 +96,19 @@ func LoadConfig() *Config {
 		d.SetBoolean(keyNotifyGameEnd, true)
 		d.SetBoolean(keyNotifyLeadChange, true)
 		d.SetBoolean(keyInitialized, true)
+	}
+	// One-time forced re-enable for installs predating the doc'd default:
+	// some users (Casey included) reported never seeing "Game starts" notifs.
+	// The original keyInitialized gate only fires on the very first launch,
+	// so anyone who launched once before that block existed kept whatever
+	// silent-off state they had. This backfill runs once per install (the
+	// .v1 marker keeps it from re-firing) and overwrites whatever was
+	// there; from this point onward the Settings toggles win normally.
+	if !d.Boolean(keyNotifsForcedOn) {
+		d.SetBoolean(keyNotifyGameStart, true)
+		d.SetBoolean(keyNotifyGameEnd, true)
+		d.SetBoolean(keyNotifyLeadChange, true)
+		d.SetBoolean(keyNotifsForcedOn, true)
 	}
 	c := &Config{
 		revealed:         make(map[string]int64),
