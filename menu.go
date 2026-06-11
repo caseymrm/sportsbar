@@ -283,38 +283,14 @@ func dropdownGameRuns(g Game, favTeamID string, revealed bool) []menuet.TextRun 
 			return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, sec)}
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)
-		// Trailing team stays at primary color; only the weight separates
-		// leader (Bold) from trailer (Regular).
-		return []menuet.TextRun{
-			r(ourAbbr+" ", semibold),
-			r(fmt.Sprintf("%d", ourScore), monoBold),
-			r(" – ", ter),
-			r(fmt.Sprintf("%d", theirScore), mono),
-			r(" "+oppAbbr, plain),
-		}
+		return goldDropdownRow(ourAbbr, ourScore, oppAbbr, theirScore, ourScore >= theirScore)
 
 	case StateFinal:
 		if !revealed {
 			return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, sec)}
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)
-		if ourScore >= theirScore {
-			return []menuet.TextRun{
-				r(ourAbbr+" ", semibold),
-				r(fmt.Sprintf("%d", ourScore), monoBold),
-				r(" – ", ter),
-				r(fmt.Sprintf("%d", theirScore), mono),
-				r(" "+oppAbbr, plain),
-			}
-		}
-		// Loss: same primary color on both sides, weight inverts.
-		return []menuet.TextRun{
-			r(ourAbbr+" ", semibold),
-			r(fmt.Sprintf("%d", ourScore), mono),
-			r(" – ", ter),
-			r(fmt.Sprintf("%d", theirScore), monoBold),
-			r(" "+oppAbbr, plain),
-		}
+		return goldDropdownRow(ourAbbr, ourScore, oppAbbr, theirScore, ourScore >= theirScore)
 	}
 	return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, runOpts{})}
 }
@@ -448,14 +424,14 @@ func (m *Menu) quietScoreboardSubmenu(g Game) []menuet.MenuItem {
 }
 
 // teamScoreRow renders one team's line in the quiet scoreboard: 16px logo,
-// abbr (mono, Bold if leader / Regular if trailer), and a right-padded score.
-// Both teams use LabelPrimary; weight alone separates leader from trailer
-// — a brighter trailing team than the original LabelSecondary because
-// secondary read as "disabled" at small sizes.
+// abbr (mono, Bold + gold tint if leader / Regular + default if trailer),
+// and a right-padded score. The leader gets the same gold + Bold treatment
+// as the menubar title's winning side; trailer is plain default text — no
+// loser marker.
 func (m *Menu) teamScoreRow(g Game, team EspnTeam, score int, leader bool) menuet.MenuItem {
 	style := mono
 	if leader {
-		style = monoBold
+		style = runOpts{mono: true, color: titleGold, weight: menuet.WeightBold}
 	}
 	row := menuet.Regular{
 		Runs: []menuet.TextRun{
@@ -765,6 +741,30 @@ func (m *Menu) scheduleGameItem(g Game, now time.Time, favTeamID string) menuet.
 	}
 }
 
+// goldDropdownRow is the per-row format for the main dropdown's revealed
+// game lines. Winner side (team + score) takes the gold tint + WeightBold;
+// loser side stays at default LabelPrimary with WeightRegular. Center dash
+// is neutral. Matches the menubar title's "gold winner, plain loser" rule.
+func goldDropdownRow(ourAbbr string, ourScore int, oppAbbr string, theirScore int, weWin bool) []menuet.TextRun {
+	ourColor, theirColor, ourScoreWeight, theirScoreWeight := goldColorsAndWeights(weWin)
+	return []menuet.TextRun{
+		r(ourAbbr+" ", runOpts{color: ourColor, weight: menuet.WeightSemibold}),
+		r(fmt.Sprintf("%d", ourScore), runOpts{color: ourColor, weight: ourScoreWeight, mono: true}),
+		r(" – ", ter),
+		r(fmt.Sprintf("%d", theirScore), runOpts{color: theirColor, weight: theirScoreWeight, mono: true}),
+		r(" "+oppAbbr, runOpts{color: theirColor}),
+	}
+}
+
+// goldColorsAndWeights resolves the per-side color + score weight pair for the
+// gold-winner-only rule. Loser color stays zero (= LabelPrimary default).
+func goldColorsAndWeights(weWin bool) (menuet.Color, menuet.Color, menuet.FontWeight, menuet.FontWeight) {
+	if weWin {
+		return titleGold, menuet.Color{}, menuet.WeightBold, menuet.WeightRegular
+	}
+	return menuet.Color{}, titleGold, menuet.WeightRegular, menuet.WeightBold
+}
+
 // schedFinalRow ports schedRow() from variants-v2.jsx — the canonical mono
 // scoreboard with W/L/? result column and right-aligned 3-char score fields.
 //
@@ -780,6 +780,10 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 	hidden := !revealed
 	won := ourScore > oppScore
 
+	// Result column holds "? " on hidden rows (the spoiler veil); on
+	// revealed rows we keep two mono spaces so the rest of the row stays in
+	// the same fixed-width column. The W/L letter is gone — winner side
+	// takes the gold tint instead, matching the menubar treatment.
 	var result menuet.TextRun
 	var ourStyle, oppStyle runOpts
 	switch {
@@ -788,13 +792,13 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 		ourStyle = monoSec
 		oppStyle = monoSec
 	case won:
-		result = r("W ", runOpts{mono: true, color: menuet.SystemGreen, weight: menuet.WeightHeavy})
-		ourStyle = monoBold
+		result = r("  ", runOpts{mono: true})
+		ourStyle = runOpts{mono: true, color: titleGold, weight: menuet.WeightBold}
 		oppStyle = mono
 	default:
-		result = r("L ", runOpts{mono: true, color: menuet.SystemRed, weight: menuet.WeightHeavy})
+		result = r("  ", runOpts{mono: true})
 		ourStyle = mono
-		oppStyle = monoBold
+		oppStyle = runOpts{mono: true, color: titleGold, weight: menuet.WeightBold}
 	}
 
 	ourScoreText := fmt.Sprintf("%d", ourScore)
