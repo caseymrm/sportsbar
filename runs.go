@@ -27,31 +27,35 @@ import (
 // surface, so any new emphasis (underline, strikethrough, background,
 // shadow) can be applied through the same r() builder.
 type runOpts struct {
-	color         menuet.Color
-	weight        menuet.FontWeight
-	size          int
-	mono          bool
-	badge         bool
-	underline     bool
-	strikethrough bool
-	background    menuet.Color
-	shadow        *menuet.Shadow
+	color              menuet.Color
+	weight             menuet.FontWeight
+	size               int
+	mono               bool
+	badge              bool
+	underline          bool
+	underlineColor     menuet.Color
+	strikethrough      bool
+	strikethroughColor menuet.Color
+	background         menuet.Color
+	shadow             *menuet.Shadow
 }
 
 // r builds a TextRun. Mirrors the JSX `r(text, opts)` builder so porting the
 // design files reads close to the original.
 func r(text string, o runOpts) menuet.TextRun {
 	return menuet.TextRun{
-		Text:          text,
-		Color:         o.color,
-		FontSize:      o.size,
-		FontWeight:    o.weight,
-		Monospaced:    o.mono,
-		Badge:         o.badge,
-		Underline:     o.underline,
-		Strikethrough: o.strikethrough,
-		Background:    o.background,
-		Shadow:        o.shadow,
+		Text:               text,
+		Color:              o.color,
+		FontSize:           o.size,
+		FontWeight:         o.weight,
+		Monospaced:         o.mono,
+		Badge:              o.badge,
+		Underline:          o.underline,
+		UnderlineColor:     o.underlineColor,
+		Strikethrough:      o.strikethrough,
+		StrikethroughColor: o.strikethroughColor,
+		Background:         o.background,
+		Shadow:             o.shadow,
 	}
 }
 
@@ -95,23 +99,27 @@ var (
 // menubar's translucent background without re-tuning per appearance.
 var titleGold = menuet.Color{R: 200, G: 165, B: 70, A: 255}
 
-// goldWinnerStyle is the canonical runOpts for any "this side won" run —
-// gold tint, the requested weight, monospaced for digits, and a single
-// underline (menuet v2.8 TextRun.Underline). Underline reads as a clean
-// "champion's mark" — typographic rather than soft like the halo glow we
-// tried before, and stays crisp even in the small menubar title. Caller
-// picks the weight (Semibold for the identity abbr, Bold for the score).
-//
-// Earlier experiments left in the code's history for reference: Shadow
-// glow (v2.8 TextRun.Shadow) at Blur=6/A=200 was too smudgy; dropping to
-// Blur=3/A=110 still bled into the letters. Underline avoids the bleed
-// entirely.
-func goldWinnerStyle(weight menuet.FontWeight, mono bool) runOpts {
+// goldWinnerAbbrStyle is the winner's *team-name* style: default text color
+// + a gold underline. menuet v2.9 UnderlineColor lets the underline carry
+// the gold even though the letters stay at LabelPrimary, so the team name
+// reads normally with a small gold mark beneath it.
+func goldWinnerAbbrStyle(weight menuet.FontWeight, mono bool) runOpts {
 	return runOpts{
-		color:     titleGold,
-		weight:    weight,
-		mono:      mono,
-		underline: true,
+		weight:         weight,
+		mono:           mono,
+		underline:      true,
+		underlineColor: titleGold,
+	}
+}
+
+// goldWinnerScoreStyle is the winner's *score* style: gold tint, no
+// underline. Color carries the celebration on the digit side; the
+// underline lives only under the team name.
+func goldWinnerScoreStyle(weight menuet.FontWeight, mono bool) runOpts {
+	return runOpts{
+		color:  titleGold,
+		weight: weight,
+		mono:   mono,
 	}
 }
 

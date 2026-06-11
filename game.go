@@ -150,15 +150,15 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 		// could only sketch with prose before.
 		var ourAbbrStyle, ourScoreStyle, theirScoreStyle, oppAbbrStyle runOpts
 		if won {
-			ourAbbrStyle = goldWinnerStyle(menuet.WeightSemibold, false)
-			ourScoreStyle = goldWinnerStyle(menuet.WeightBold, true)
+			ourAbbrStyle = goldWinnerAbbrStyle(menuet.WeightSemibold, false)
+			ourScoreStyle = goldWinnerScoreStyle(menuet.WeightBold, true)
 			theirScoreStyle = mono
 			oppAbbrStyle = plain
 		} else {
 			ourAbbrStyle = runOpts{weight: menuet.WeightSemibold}
 			ourScoreStyle = mono
-			theirScoreStyle = goldWinnerStyle(menuet.WeightBold, true)
-			oppAbbrStyle = goldWinnerStyle(menuet.WeightRegular, false)
+			theirScoreStyle = goldWinnerScoreStyle(menuet.WeightBold, true)
+			oppAbbrStyle = goldWinnerAbbrStyle(menuet.WeightRegular, false)
 		}
 		// Runs are split so the underline only sits under letters and digits
 		// — the gap spaces and the center "–" stay untreated.
