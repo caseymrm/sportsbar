@@ -424,14 +424,13 @@ func (m *Menu) quietScoreboardSubmenu(g Game) []menuet.MenuItem {
 }
 
 // teamScoreRow renders one team's line in the quiet scoreboard: 16px logo,
-// abbr (mono, Bold + gold tint if leader / Regular + default if trailer),
-// and a right-padded score. The leader gets the same gold + Bold treatment
-// as the menubar title's winning side; trailer is plain default text — no
-// loser marker.
+// abbr (mono, gold tint + WeightBold + trophy halo if leader / Regular +
+// default if trailer), and a right-padded score. Matches the menubar title
+// and dropdown's "gold winner, plain loser, halo glow" rule.
 func (m *Menu) teamScoreRow(g Game, team EspnTeam, score int, leader bool) menuet.MenuItem {
 	style := mono
 	if leader {
-		style = runOpts{mono: true, color: titleGold, weight: menuet.WeightBold}
+		style = goldWinnerStyle(menuet.WeightBold, true)
 	}
 	row := menuet.Regular{
 		Runs: []menuet.TextRun{
@@ -742,27 +741,29 @@ func (m *Menu) scheduleGameItem(g Game, now time.Time, favTeamID string) menuet.
 }
 
 // goldDropdownRow is the per-row format for the main dropdown's revealed
-// game lines. Winner side (team + score) takes the gold tint + WeightBold;
-// loser side stays at default LabelPrimary with WeightRegular. Center dash
-// is neutral. Matches the menubar title's "gold winner, plain loser" rule.
+// game lines. Winner side (team + score) takes the gold tint + WeightBold +
+// the trophy halo; loser side stays at default LabelPrimary with
+// WeightRegular. Center dash is neutral.
 func goldDropdownRow(ourAbbr string, ourScore int, oppAbbr string, theirScore int, weWin bool) []menuet.TextRun {
-	ourColor, theirColor, ourScoreWeight, theirScoreWeight := goldColorsAndWeights(weWin)
-	return []menuet.TextRun{
-		r(ourAbbr+" ", runOpts{color: ourColor, weight: menuet.WeightSemibold}),
-		r(fmt.Sprintf("%d", ourScore), runOpts{color: ourColor, weight: ourScoreWeight, mono: true}),
-		r(" – ", ter),
-		r(fmt.Sprintf("%d", theirScore), runOpts{color: theirColor, weight: theirScoreWeight, mono: true}),
-		r(" "+oppAbbr, runOpts{color: theirColor}),
-	}
-}
-
-// goldColorsAndWeights resolves the per-side color + score weight pair for the
-// gold-winner-only rule. Loser color stays zero (= LabelPrimary default).
-func goldColorsAndWeights(weWin bool) (menuet.Color, menuet.Color, menuet.FontWeight, menuet.FontWeight) {
+	var ourAbbrS, ourScoreS, theirScoreS, oppAbbrS runOpts
 	if weWin {
-		return titleGold, menuet.Color{}, menuet.WeightBold, menuet.WeightRegular
+		ourAbbrS = goldWinnerStyle(menuet.WeightSemibold, false)
+		ourScoreS = goldWinnerStyle(menuet.WeightBold, true)
+		theirScoreS = mono
+		oppAbbrS = plain
+	} else {
+		ourAbbrS = runOpts{weight: menuet.WeightSemibold}
+		ourScoreS = mono
+		theirScoreS = goldWinnerStyle(menuet.WeightBold, true)
+		oppAbbrS = goldWinnerStyle(menuet.WeightRegular, false)
 	}
-	return menuet.Color{}, titleGold, menuet.WeightRegular, menuet.WeightBold
+	return []menuet.TextRun{
+		r(ourAbbr+" ", ourAbbrS),
+		r(fmt.Sprintf("%d", ourScore), ourScoreS),
+		r(" – ", ter),
+		r(fmt.Sprintf("%d", theirScore), theirScoreS),
+		r(" "+oppAbbr, oppAbbrS),
+	}
 }
 
 // schedFinalRow ports schedRow() from variants-v2.jsx — the canonical mono
@@ -793,12 +794,12 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 		oppStyle = monoSec
 	case won:
 		result = r("  ", runOpts{mono: true})
-		ourStyle = runOpts{mono: true, color: titleGold, weight: menuet.WeightBold}
+		ourStyle = goldWinnerStyle(menuet.WeightBold, true)
 		oppStyle = mono
 	default:
 		result = r("  ", runOpts{mono: true})
 		ourStyle = mono
-		oppStyle = runOpts{mono: true, color: titleGold, weight: menuet.WeightBold}
+		oppStyle = goldWinnerStyle(menuet.WeightBold, true)
 	}
 
 	ourScoreText := fmt.Sprintf("%d", ourScore)

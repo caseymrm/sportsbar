@@ -23,25 +23,35 @@ import (
 //   badge                    = TextRun{Badge: true, Color: SystemRed}
 
 // runOpts mirrors the JSX r() options object. Zero values inherit the row's
-// defaults — same semantics as menuet's TextRun.
+// defaults — same semantics as menuet's TextRun. Mirrors the menuet v2.8
+// surface, so any new emphasis (underline, strikethrough, background,
+// shadow) can be applied through the same r() builder.
 type runOpts struct {
-	color    menuet.Color
-	weight   menuet.FontWeight
-	size     int
-	mono     bool
-	badge    bool
+	color         menuet.Color
+	weight        menuet.FontWeight
+	size          int
+	mono          bool
+	badge         bool
+	underline     bool
+	strikethrough bool
+	background    menuet.Color
+	shadow        *menuet.Shadow
 }
 
 // r builds a TextRun. Mirrors the JSX `r(text, opts)` builder so porting the
 // design files reads close to the original.
 func r(text string, o runOpts) menuet.TextRun {
 	return menuet.TextRun{
-		Text:       text,
-		Color:      o.color,
-		FontSize:   o.size,
-		FontWeight: o.weight,
-		Monospaced: o.mono,
-		Badge:      o.badge,
+		Text:          text,
+		Color:         o.color,
+		FontSize:      o.size,
+		FontWeight:    o.weight,
+		Monospaced:    o.mono,
+		Badge:         o.badge,
+		Underline:     o.underline,
+		Strikethrough: o.strikethrough,
+		Background:    o.background,
+		Shadow:        o.shadow,
 	}
 }
 
@@ -84,6 +94,29 @@ var (
 // vivid. This midweight gold reads against both the light and the dark
 // menubar's translucent background without re-tuning per appearance.
 var titleGold = menuet.Color{R: 200, G: 165, B: 70, A: 255}
+
+// winnerHalo is the celebration glow that wraps the winner's runs (menuet
+// v2.8+). Blur with zero offsets renders as an isotropic glow around the
+// text, separately from the gold foreground tint. The halo color is a
+// brighter gold than the foreground so the glow reads as light spilling
+// off the letters rather than a smudged copy.
+var winnerHalo = &menuet.Shadow{
+	Color: menuet.Color{R: 255, G: 220, B: 100, A: 200},
+	Blur:  6,
+}
+
+// goldWinnerStyle is the canonical runOpts for any "this side won" run —
+// gold tint, the requested weight, monospaced for digits, and the trophy
+// halo. Caller picks the weight (Semibold for the identity abbr, Bold for
+// the score).
+func goldWinnerStyle(weight menuet.FontWeight, mono bool) runOpts {
+	return runOpts{
+		color:  titleGold,
+		weight: weight,
+		mono:   mono,
+		shadow: winnerHalo,
+	}
+}
 
 // padL right-aligns s in a field of n characters (left-padded with spaces).
 // Used for score columns so 1-, 2-, and 3-digit scores align on their ones digit.
