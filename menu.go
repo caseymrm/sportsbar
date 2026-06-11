@@ -432,10 +432,13 @@ func (m *Menu) teamScoreRow(g Game, team EspnTeam, score int, leader bool) menue
 	if leader {
 		style = goldWinnerStyle(menuet.WeightBold, true)
 	}
+	// Underline (when leader) sits under the abbr and the score; the gap
+	// between them stays untreated.
 	row := menuet.Regular{
 		Runs: []menuet.TextRun{
 			r(team.Abbreviation, style),
-			r("   "+fmt.Sprintf("%d", score), style),
+			r("   ", runOpts{mono: true}),
+			r(fmt.Sprintf("%d", score), style),
 		},
 		Clicked: func() {},
 	}
@@ -757,12 +760,16 @@ func goldDropdownRow(ourAbbr string, ourScore int, oppAbbr string, theirScore in
 		theirScoreS = goldWinnerStyle(menuet.WeightBold, true)
 		oppAbbrS = goldWinnerStyle(menuet.WeightRegular, false)
 	}
+	// Underline only sits under letters and digits — the gap spaces and the
+	// center " – " stay untreated.
 	return []menuet.TextRun{
-		r(ourAbbr+" ", ourAbbrS),
+		r(ourAbbr, ourAbbrS),
+		r(" ", runOpts{}),
 		r(fmt.Sprintf("%d", ourScore), ourScoreS),
 		r(" – ", ter),
 		r(fmt.Sprintf("%d", theirScore), theirScoreS),
-		r(" "+oppAbbr, oppAbbrS),
+		r(" ", runOpts{}),
+		r(oppAbbr, oppAbbrS),
 	}
 }
 
@@ -820,12 +827,18 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 		oppNumStyle = veiledStyle
 	}
 
+	// Split abbr from its gap so the underline (when present) stays under
+	// the letters and digits only — never under the padded spaces.
 	day := scheduleDayLabel(g.Start)
+	monoGap := runOpts{mono: true}
 	return []menuet.TextRun{
 		result,
-		r(padR(ourAbbr, 3)+" ", withMono(ourStyle)),
+		r(padR(ourAbbr, 3), withMono(ourStyle)),
+		r(" ", monoGap),
 		r(padL(ourScoreText, 3), withMono(ourNumStyle)),
-		r("  "+padR(oppAbbr, 3)+" ", withMono(oppStyle)),
+		r("  ", monoGap),
+		r(padR(oppAbbr, 3), withMono(oppStyle)),
+		r(" ", monoGap),
 		r(padL(oppScoreText, 3), withMono(oppNumStyle)),
 		r("   "+day, monoTerTiny),
 	}
