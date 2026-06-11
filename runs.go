@@ -62,6 +62,16 @@ var (
 	monoSec      = runOpts{color: menuet.LabelSecondary, mono: true}
 	monoTerTiny  = runOpts{color: menuet.LabelTertiary, mono: true, size: 10}
 	ter11        = runOpts{color: menuet.LabelTertiary, size: 11}
+
+	// Trailing team in a finished or live game. The original design called
+	// for LabelSecondary on the loser, but at small sizes that grey reads as
+	// "disabled" and is hard to scan. We keep the loser at LabelPrimary
+	// (default) and lean on the WeightBold vs WeightRegular split — plus the
+	// loud W/L marker — to carry the leader/trailer distinction. AppKit
+	// doesn't expose a semantic between primary and secondary, so a fixed
+	// RGBA would have broken dark-mode adaptation.
+	mono         = runOpts{mono: true}
+	plain        = runOpts{}
 )
 
 // padL right-aligns s in a field of n characters (left-padded with spaces).

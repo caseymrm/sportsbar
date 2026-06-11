@@ -283,12 +283,14 @@ func dropdownGameRuns(g Game, favTeamID string, revealed bool) []menuet.TextRun 
 			return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, sec)}
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)
+		// Trailing team stays at primary color; only the weight separates
+		// leader (Bold) from trailer (Regular).
 		return []menuet.TextRun{
 			r(ourAbbr+" ", semibold),
 			r(fmt.Sprintf("%d", ourScore), monoBold),
 			r(" – ", ter),
-			r(fmt.Sprintf("%d", theirScore), monoSec),
-			r(" "+oppAbbr, sec),
+			r(fmt.Sprintf("%d", theirScore), mono),
+			r(" "+oppAbbr, plain),
 		}
 
 	case StateFinal:
@@ -301,17 +303,17 @@ func dropdownGameRuns(g Game, favTeamID string, revealed bool) []menuet.TextRun 
 				r(ourAbbr+" ", semibold),
 				r(fmt.Sprintf("%d", ourScore), monoBold),
 				r(" – ", ter),
-				r(fmt.Sprintf("%d", theirScore), monoSec),
-				r(" "+oppAbbr, sec),
+				r(fmt.Sprintf("%d", theirScore), mono),
+				r(" "+oppAbbr, plain),
 			}
 		}
-		// Loss: our side takes the quiet voice; opponent's score is bold.
+		// Loss: same primary color on both sides, weight inverts.
 		return []menuet.TextRun{
-			r(ourAbbr+" ", sec),
-			r(fmt.Sprintf("%d", ourScore), monoSec),
+			r(ourAbbr+" ", semibold),
+			r(fmt.Sprintf("%d", ourScore), mono),
 			r(" – ", ter),
 			r(fmt.Sprintf("%d", theirScore), monoBold),
-			r(" "+oppAbbr, sec),
+			r(" "+oppAbbr, plain),
 		}
 	}
 	return []menuet.TextRun{r(ourAbbr+" @ "+oppAbbr, runOpts{})}
@@ -446,9 +448,12 @@ func (m *Menu) quietScoreboardSubmenu(g Game) []menuet.MenuItem {
 }
 
 // teamScoreRow renders one team's line in the quiet scoreboard: 16px logo,
-// abbr (mono, bold if leader / sec if trailer), and a right-padded score.
+// abbr (mono, Bold if leader / Regular if trailer), and a right-padded score.
+// Both teams use LabelPrimary; weight alone separates leader from trailer
+// — a brighter trailing team than the original LabelSecondary because
+// secondary read as "disabled" at small sizes.
 func (m *Menu) teamScoreRow(g Game, team EspnTeam, score int, leader bool) menuet.MenuItem {
-	style := monoSec
+	style := mono
 	if leader {
 		style = monoBold
 	}
@@ -785,10 +790,10 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 	case won:
 		result = r("W ", runOpts{mono: true, color: menuet.SystemGreen, weight: menuet.WeightHeavy})
 		ourStyle = monoBold
-		oppStyle = monoSec
+		oppStyle = mono
 	default:
 		result = r("L ", runOpts{mono: true, color: menuet.SystemRed, weight: menuet.WeightHeavy})
-		ourStyle = monoSec
+		ourStyle = mono
 		oppStyle = monoBold
 	}
 

@@ -119,12 +119,14 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 	case StateLive:
 		if revealed {
 			ourScore, theirScore := scoresFor(g, favTeamID)
+			// Trailing team stays at primary color; only weight separates
+			// the leader (Bold) from the trailer (Regular).
 			return []menuet.TextRun{
 				r("● ", red),
 				r(favAbbr+" ", semibold),
 				r(fmt.Sprintf("%d", ourScore), monoBold),
-				r(fmt.Sprintf("–%d", theirScore), monoSec),
-				r(" "+oppAbbr, sec),
+				r(fmt.Sprintf("–%d", theirScore), mono),
+				r(" "+oppAbbr, plain),
 			}
 		}
 		return []menuet.TextRun{
@@ -142,16 +144,18 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)
 		won := ourScore > theirScore
-		// Loud W/L letter; matchup runs invert their bold/secondary based on outcome.
+		// Loud W/L letter for the result. Trailing-team score stays at
+		// primary color (no LabelSecondary dimming) — only weight separates
+		// leader from trailer.
 		var marker menuet.TextRun
 		var ourStyle, theirStyle runOpts
 		if won {
 			marker = r("W ", runOpts{color: menuet.SystemGreen, weight: menuet.WeightHeavy})
 			ourStyle = monoBold
-			theirStyle = monoSec
+			theirStyle = mono
 		} else {
 			marker = r("L ", runOpts{color: menuet.SystemRed, weight: menuet.WeightHeavy})
-			ourStyle = monoSec
+			ourStyle = mono
 			theirStyle = monoBold
 		}
 		return []menuet.TextRun{
@@ -159,7 +163,7 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 			r(favAbbr+" ", semibold),
 			r(fmt.Sprintf("%d", ourScore), ourStyle),
 			r(fmt.Sprintf("–%d", theirScore), theirStyle),
-			r(" "+oppAbbr, sec),
+			r(" "+oppAbbr, plain),
 		}
 	}
 	return []menuet.TextRun{r(favAbbr, runOpts{})}
