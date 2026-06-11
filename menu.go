@@ -423,22 +423,22 @@ func (m *Menu) quietScoreboardSubmenu(g Game) []menuet.MenuItem {
 	return items
 }
 
-// teamScoreRow renders one team's line in the quiet scoreboard: 16px logo,
-// abbr (mono, gold tint + WeightBold + trophy halo if leader / Regular +
-// default if trailer), and a right-padded score. Matches the menubar title
-// and dropdown's "gold winner, plain loser, halo glow" rule.
+// teamScoreRow renders one team's line in the quiet scoreboard. Leader gets
+// a gold underline under the team abbreviation and a gold-tinted score
+// (no underline) — the same split-style rule used by the menubar title,
+// dropdown, and team-schedule winners.
 func (m *Menu) teamScoreRow(g Game, team EspnTeam, score int, leader bool) menuet.MenuItem {
-	style := mono
+	abbrStyle := mono
+	scoreStyle := mono
 	if leader {
-		style = goldWinnerStyle(menuet.WeightBold, true)
+		abbrStyle = goldWinnerAbbrStyle(menuet.WeightBold, true)
+		scoreStyle = goldWinnerScoreStyle(menuet.WeightBold, true)
 	}
-	// Underline (when leader) sits under the abbr and the score; the gap
-	// between them stays untreated.
 	row := menuet.Regular{
 		Runs: []menuet.TextRun{
-			r(team.Abbreviation, style),
+			r(team.Abbreviation, abbrStyle),
 			r("   ", runOpts{mono: true}),
-			r(fmt.Sprintf("%d", score), style),
+			r(fmt.Sprintf("%d", score), scoreStyle),
 		},
 		Clicked: func() {},
 	}
@@ -750,15 +750,15 @@ func (m *Menu) scheduleGameItem(g Game, now time.Time, favTeamID string) menuet.
 func goldDropdownRow(ourAbbr string, ourScore int, oppAbbr string, theirScore int, weWin bool) []menuet.TextRun {
 	var ourAbbrS, ourScoreS, theirScoreS, oppAbbrS runOpts
 	if weWin {
-		ourAbbrS = goldWinnerStyle(menuet.WeightSemibold, false)
-		ourScoreS = goldWinnerStyle(menuet.WeightBold, true)
+		ourAbbrS = goldWinnerAbbrStyle(menuet.WeightSemibold, false)
+		ourScoreS = goldWinnerScoreStyle(menuet.WeightBold, true)
 		theirScoreS = mono
 		oppAbbrS = plain
 	} else {
 		ourAbbrS = runOpts{weight: menuet.WeightSemibold}
 		ourScoreS = mono
-		theirScoreS = goldWinnerStyle(menuet.WeightBold, true)
-		oppAbbrS = goldWinnerStyle(menuet.WeightRegular, false)
+		theirScoreS = goldWinnerScoreStyle(menuet.WeightBold, true)
+		oppAbbrS = goldWinnerAbbrStyle(menuet.WeightRegular, false)
 	}
 	// Underline only sits under letters and digits — the gap spaces and the
 	// center " – " stay untreated.
@@ -791,22 +791,25 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 	// Result column holds "? " on hidden rows (the spoiler veil); on
 	// revealed rows we keep two mono spaces so the rest of the row stays in
 	// the same fixed-width column. The W/L letter is gone — winner side
-	// takes the gold tint instead, matching the menubar treatment.
+	// takes the gold treatment instead (gold underline under the abbr,
+	// gold-tinted digits with no underline).
 	var result menuet.TextRun
-	var ourStyle, oppStyle runOpts
+	var ourStyle, ourNumStyle, oppStyle, oppNumStyle runOpts
 	switch {
 	case hidden:
 		result = r("? ", runOpts{mono: true, color: menuet.LabelQuaternary, weight: menuet.WeightHeavy})
-		ourStyle = monoSec
-		oppStyle = monoSec
+		ourStyle, ourNumStyle = monoSec, monoSec
+		oppStyle, oppNumStyle = monoSec, monoSec
 	case won:
 		result = r("  ", runOpts{mono: true})
-		ourStyle = goldWinnerStyle(menuet.WeightBold, true)
-		oppStyle = mono
+		ourStyle = goldWinnerAbbrStyle(menuet.WeightBold, true)
+		ourNumStyle = goldWinnerScoreStyle(menuet.WeightBold, true)
+		oppStyle, oppNumStyle = mono, mono
 	default:
 		result = r("  ", runOpts{mono: true})
-		ourStyle = mono
-		oppStyle = goldWinnerStyle(menuet.WeightBold, true)
+		ourStyle, ourNumStyle = mono, mono
+		oppStyle = goldWinnerAbbrStyle(menuet.WeightBold, true)
+		oppNumStyle = goldWinnerScoreStyle(menuet.WeightBold, true)
 	}
 
 	ourScoreText := fmt.Sprintf("%d", ourScore)
@@ -814,17 +817,11 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 	if hidden {
 		ourScoreText = "?"
 		oppScoreText = "?"
-	}
-
-	// Per JSX: when hidden the score-slot run carries the quaternary veil
-	// color on top of the team's secondary tone, so the `?` reads quieter
-	// than the abbreviation beside it.
-	veiledStyle := runOpts{mono: true, color: menuet.LabelQuaternary}
-	ourNumStyle := ourStyle
-	oppNumStyle := oppStyle
-	if hidden {
-		ourNumStyle = veiledStyle
-		oppNumStyle = veiledStyle
+		// Per JSX: when hidden the score-slot run carries the quaternary
+		// veil color on top of the team's secondary tone, so the `?` reads
+		// quieter than the abbreviation beside it.
+		veiledStyle := runOpts{mono: true, color: menuet.LabelQuaternary}
+		ourNumStyle, oppNumStyle = veiledStyle, veiledStyle
 	}
 
 	// Split each padded slot into "pad" + "glyphs" so the underline (when
