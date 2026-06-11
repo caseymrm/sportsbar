@@ -827,20 +827,49 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 		oppNumStyle = veiledStyle
 	}
 
-	// Split abbr from its gap so the underline (when present) stays under
-	// the letters and digits only — never under the padded spaces.
+	// Split each padded slot into "pad" + "glyphs" so the underline (when
+	// present) stays under the actual characters only — never under the
+	// alignment whitespace before a 1-digit score or after a 2-letter abbr.
 	day := scheduleDayLabel(g.Start)
 	monoGap := runOpts{mono: true}
+	runs := []menuet.TextRun{result}
+	runs = append(runs, padRRuns(ourAbbr, 3, withMono(ourStyle))...)
+	runs = append(runs, r(" ", monoGap))
+	runs = append(runs, padLRuns(ourScoreText, 3, withMono(ourNumStyle))...)
+	runs = append(runs, r("  ", monoGap))
+	runs = append(runs, padRRuns(oppAbbr, 3, withMono(oppStyle))...)
+	runs = append(runs, r(" ", monoGap))
+	runs = append(runs, padLRuns(oppScoreText, 3, withMono(oppNumStyle))...)
+	runs = append(runs, r("   "+day, monoTerTiny))
+	return runs
+}
+
+// padLRuns is the right-aligned (left-padded) counterpart for scores. The
+// leading pad spaces become their own mono-only run so any underline /
+// background applied to the glyph style doesn't draw under the alignment
+// whitespace.
+func padLRuns(text string, width int, style runOpts) []menuet.TextRun {
+	pad := width - len(text)
+	if pad <= 0 {
+		return []menuet.TextRun{r(text, style)}
+	}
 	return []menuet.TextRun{
-		result,
-		r(padR(ourAbbr, 3), withMono(ourStyle)),
-		r(" ", monoGap),
-		r(padL(ourScoreText, 3), withMono(ourNumStyle)),
-		r("  ", monoGap),
-		r(padR(oppAbbr, 3), withMono(oppStyle)),
-		r(" ", monoGap),
-		r(padL(oppScoreText, 3), withMono(oppNumStyle)),
-		r("   "+day, monoTerTiny),
+		r(spaces(pad), runOpts{mono: true}),
+		r(text, style),
+	}
+}
+
+// padRRuns splits a left-aligned (right-padded) abbreviation slot into
+// "glyphs" + "trailing pad" runs so emphasis on the abbr's style doesn't
+// bleed onto the alignment whitespace.
+func padRRuns(text string, width int, style runOpts) []menuet.TextRun {
+	pad := width - len(text)
+	if pad <= 0 {
+		return []menuet.TextRun{r(text, style)}
+	}
+	return []menuet.TextRun{
+		r(text, style),
+		r(spaces(pad), runOpts{mono: true}),
 	}
 }
 
