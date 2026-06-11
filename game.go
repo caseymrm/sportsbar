@@ -144,26 +144,25 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)
 		won := ourScore > theirScore
-		// Loud W/L letter for the result. Trailing-team score stays at
-		// primary color (no LabelSecondary dimming) — only weight separates
-		// leader from trailer.
-		var marker menuet.TextRun
-		var ourStyle, theirStyle runOpts
+		// No W/L marker letter in the menubar — having an "L" hanging there
+		// all evening after a loss feels bad. Instead, tint each side by its
+		// outcome: winning team + score in SystemGreen, losing team + score
+		// in SystemRed. Weight still differentiates leader (Bold) from
+		// trailer (Regular) for accessibility on top of color.
+		var ourColor, theirColor menuet.Color
+		var ourWeight, theirWeight menuet.FontWeight
 		if won {
-			marker = r("W ", runOpts{color: menuet.SystemGreen, weight: menuet.WeightHeavy})
-			ourStyle = monoBold
-			theirStyle = mono
+			ourColor, ourWeight = menuet.SystemGreen, menuet.WeightBold
+			theirColor, theirWeight = menuet.SystemRed, menuet.WeightRegular
 		} else {
-			marker = r("L ", runOpts{color: menuet.SystemRed, weight: menuet.WeightHeavy})
-			ourStyle = mono
-			theirStyle = monoBold
+			ourColor, ourWeight = menuet.SystemRed, menuet.WeightRegular
+			theirColor, theirWeight = menuet.SystemGreen, menuet.WeightBold
 		}
 		return []menuet.TextRun{
-			marker,
-			r(favAbbr+" ", semibold),
-			r(fmt.Sprintf("%d", ourScore), ourStyle),
-			r(fmt.Sprintf("–%d", theirScore), theirStyle),
-			r(" "+oppAbbr, plain),
+			r(favAbbr+" ", runOpts{color: ourColor, weight: menuet.WeightSemibold}),
+			r(fmt.Sprintf("%d", ourScore), runOpts{color: ourColor, weight: ourWeight, mono: true}),
+			r(fmt.Sprintf("–%d", theirScore), runOpts{color: theirColor, weight: theirWeight, mono: true}),
+			r(" "+oppAbbr, runOpts{color: theirColor}),
 		}
 	}
 	return []menuet.TextRun{r(favAbbr, runOpts{})}
