@@ -382,17 +382,21 @@ func FetchTeamSchedule(league League, teamID string) ([]Game, error) {
 		if !ok {
 			continue
 		}
-		// Schedule events have no live state — derive from winner flag and date.
-		// (gameFromEvent set state from the absent status field, defaulting to
-		// Upcoming. Override here with a more accurate inference.)
-		if anyWinner(ev) {
-			g.State = StateFinal
-		} else if g.Start.Before(now) {
-			// In the past but no winner declared — probably postponed or in
-			// progress. Treat as Final so the user at least sees it surface.
-			g.State = StateFinal
-		} else {
-			g.State = StateUpcoming
+		// Respect StateLive when the schedule endpoint surfaced status.type.state
+		// == "in" via gameFromEvent — that's the only way to know a game is
+		// actually in progress vs postponed / late-recorded. For everything
+		// else fall back to winner + date heuristic.
+		if g.State != StateLive {
+			if anyWinner(ev) {
+				g.State = StateFinal
+			} else if g.Start.Before(now) {
+				// In the past but no winner declared — probably postponed or
+				// finished with a lagging final flag. Treat as Final so the
+				// user at least sees it surface.
+				g.State = StateFinal
+			} else {
+				g.State = StateUpcoming
+			}
 		}
 		games = append(games, g)
 	}
