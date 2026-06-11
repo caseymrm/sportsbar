@@ -565,14 +565,32 @@ func (m *Menu) favoriteTeamSubmenu(f Favorite) []menuet.MenuItem {
 			continue
 		}
 		switch g.State {
-		case StateFinal:
+		case StateFinal, StateLive:
+			// Live games count as Recent — they're in the past relative to
+			// "starts at" and the row's own ● marker tells you they're not
+			// finished yet. "Upcoming" is reserved for games that haven't
+			// kicked off.
 			recent = append(recent, g)
-		case StateUpcoming, StateLive:
+		case StateUpcoming:
 			upcoming = append(upcoming, g)
 		}
 	}
-	// Recent: most-recent first, capped.
-	sort.Slice(recent, func(i, j int) bool { return recent[i].Start.After(recent[j].Start) })
+	// Recent: most-recent first. Live games count as "now" for sort purposes
+	// — they're the closest thing to being a past event without actually
+	// being one yet, so they outrank any final's start time. Finals sort
+	// among themselves by their own start time descending.
+	sortNow := time.Now()
+	sort.Slice(recent, func(i, j int) bool {
+		ti := recent[i].Start
+		if recent[i].State == StateLive {
+			ti = sortNow
+		}
+		tj := recent[j].Start
+		if recent[j].State == StateLive {
+			tj = sortNow
+		}
+		return ti.After(tj)
+	})
 	if len(recent) > scheduleWindow {
 		recent = recent[:scheduleWindow]
 	}
@@ -782,17 +800,32 @@ func goldDropdownRow(ourAbbr string, ourScore int, oppAbbr string, theirScore in
 // stable across 1-, 2-, and 3-digit scores AND 2- vs 3-letter abbrs — the
 // thing that makes basketball (98 / 112 / 121) and baseball (3 / 5 / 11)
 // stack the same way without tab stops.
+// liveOrFinalResultMarker chooses the 2-char marker that sits in the result
+// column on a non-hidden row: a SystemRed "● " for in-progress games, or
+// two blank mono spaces for completed finals. Stays the same width either
+// way so the rest of the row's columns hold.
+func liveOrFinalResultMarker(g Game) menuet.TextRun {
+	if g.State == StateLive {
+		return r("● ", runOpts{
+			mono:   true,
+			color:  menuet.SystemRed,
+			weight: menuet.WeightBold,
+		})
+	}
+	return r("  ", runOpts{mono: true})
+}
+
 func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 	ourAbbr, oppAbbr := favAndOpponentAbbr(g, favTeamID)
 	ourScore, oppScore := scoresFor(g, favTeamID)
 	hidden := !revealed
 	won := ourScore > oppScore
 
-	// Result column holds "? " on hidden rows (the spoiler veil); on
-	// revealed rows we keep two mono spaces so the rest of the row stays in
-	// the same fixed-width column. The W/L letter is gone — winner side
-	// takes the gold treatment instead (gold underline under the abbr,
-	// gold-tinted digits with no underline).
+	// Result column carries: "? " on hidden rows (spoiler veil), "● " on
+	// live rows (in-progress marker, SystemRed), or two mono spaces on
+	// final rows (the W/L letter is gone — winner side gets the gold
+	// treatment instead). Live games still get the gold treatment on the
+	// current leader, since the score really is the leader's right now.
 	var result menuet.TextRun
 	var ourStyle, ourNumStyle, oppStyle, oppNumStyle runOpts
 	switch {
@@ -801,12 +834,12 @@ func schedFinalRow(g Game, favTeamID string, revealed bool) []menuet.TextRun {
 		ourStyle, ourNumStyle = monoSec, monoSec
 		oppStyle, oppNumStyle = monoSec, monoSec
 	case won:
-		result = r("  ", runOpts{mono: true})
+		result = liveOrFinalResultMarker(g)
 		ourStyle = goldWinnerAbbrStyle(menuet.WeightBold, true)
 		ourNumStyle = goldWinnerScoreStyle(menuet.WeightBold, true)
 		oppStyle, oppNumStyle = mono, mono
 	default:
-		result = r("  ", runOpts{mono: true})
+		result = liveOrFinalResultMarker(g)
 		ourStyle, ourNumStyle = mono, mono
 		oppStyle = goldWinnerAbbrStyle(menuet.WeightBold, true)
 		oppNumStyle = goldWinnerScoreStyle(menuet.WeightBold, true)
