@@ -74,6 +74,21 @@ var (
 	plain        = runOpts{}
 )
 
+// titleWin / titleLoss are subtle desaturated tints used only on the menubar
+// title's final-state runs. We tried SystemGreen/SystemRed first but they
+// read as alert colors; these muted versions sit closer to "tinted gray"
+// without ever quite reaching alarm-level saturation.
+//
+// Fixed RGBA (no Semantic) is intentional: AppKit's color ladder has no
+// semantic "tinted text" option, and the dynamic colors that exist (SystemRed
+// etc.) are too saturated. The trade-off is that these stay the same in
+// light and dark mode — the text-weight contrast against the menubar
+// background still adapts via the surrounding runs that DO use semantics.
+var (
+	titleWin  = menuet.Color{R: 90, G: 165, B: 110, A: 255} // muted green
+	titleLoss = menuet.Color{R: 190, G: 95, B: 95, A: 255}  // muted red
+)
+
 // padL right-aligns s in a field of n characters (left-padded with spaces).
 // Used for score columns so 1-, 2-, and 3-digit scores align on their ones digit.
 func padL(s string, n int) string {

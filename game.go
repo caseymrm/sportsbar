@@ -144,24 +144,25 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)
 		won := ourScore > theirScore
-		// No W/L marker letter in the menubar — having an "L" hanging there
-		// all evening after a loss feels bad. Instead, tint each side by its
-		// outcome: winning team + score in SystemGreen, losing team + score
-		// in SystemRed. Weight still differentiates leader (Bold) from
-		// trailer (Regular) for accessibility on top of color.
+		// Subtle outcome tint — desaturated muted greens / reds rather than
+		// SystemGreen/SystemRed (which read as alert colors). Fixed RGBA so
+		// the tone stays consistent across the menubar's translucent
+		// backgrounds; the system's own text color carries dark-mode
+		// adaptation for the dash and the digits' weight.
 		var ourColor, theirColor menuet.Color
 		var ourWeight, theirWeight menuet.FontWeight
 		if won {
-			ourColor, ourWeight = menuet.SystemGreen, menuet.WeightBold
-			theirColor, theirWeight = menuet.SystemRed, menuet.WeightRegular
+			ourColor, ourWeight = titleWin, menuet.WeightBold
+			theirColor, theirWeight = titleLoss, menuet.WeightRegular
 		} else {
-			ourColor, ourWeight = menuet.SystemRed, menuet.WeightRegular
-			theirColor, theirWeight = menuet.SystemGreen, menuet.WeightBold
+			ourColor, ourWeight = titleLoss, menuet.WeightRegular
+			theirColor, theirWeight = titleWin, menuet.WeightBold
 		}
 		return []menuet.TextRun{
 			r(favAbbr+" ", runOpts{color: ourColor, weight: menuet.WeightSemibold}),
 			r(fmt.Sprintf("%d", ourScore), runOpts{color: ourColor, weight: ourWeight, mono: true}),
-			r(fmt.Sprintf("–%d", theirScore), runOpts{color: theirColor, weight: theirWeight, mono: true}),
+			r("–", runOpts{mono: true}),
+			r(fmt.Sprintf("%d", theirScore), runOpts{color: theirColor, weight: theirWeight, mono: true}),
 			r(" "+oppAbbr, runOpts{color: theirColor}),
 		}
 	}
