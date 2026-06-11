@@ -144,25 +144,28 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)
 		won := ourScore > theirScore
-		// Only the winner gets a treatment — a subtle gold tint + WeightBold.
-		// Loser side is plain default text, so there's no marker at all on a
-		// loss (nothing punitive in the menubar). Identity weight on our
-		// abbr stays Semibold either way.
-		var ourColor, theirColor menuet.Color
-		var ourWeight, theirWeight menuet.FontWeight
+		// Only the winner gets a treatment — gold tint + WeightBold + a
+		// subtle gold glow halo (menuet v2.8 Shadow with Blur, no offset).
+		// Loser side is plain default text. The halo is the "shimmer" we
+		// could only sketch with prose before.
+		var ourAbbrStyle, ourScoreStyle, theirScoreStyle, oppAbbrStyle runOpts
 		if won {
-			ourColor, ourWeight = titleGold, menuet.WeightBold
-			theirColor, theirWeight = menuet.Color{}, menuet.WeightRegular
+			ourAbbrStyle = goldWinnerStyle(menuet.WeightSemibold, false)
+			ourScoreStyle = goldWinnerStyle(menuet.WeightBold, true)
+			theirScoreStyle = mono
+			oppAbbrStyle = plain
 		} else {
-			ourColor, ourWeight = menuet.Color{}, menuet.WeightRegular
-			theirColor, theirWeight = titleGold, menuet.WeightBold
+			ourAbbrStyle = runOpts{weight: menuet.WeightSemibold}
+			ourScoreStyle = mono
+			theirScoreStyle = goldWinnerStyle(menuet.WeightBold, true)
+			oppAbbrStyle = goldWinnerStyle(menuet.WeightRegular, false)
 		}
 		return []menuet.TextRun{
-			r(favAbbr+" ", runOpts{color: ourColor, weight: menuet.WeightSemibold}),
-			r(fmt.Sprintf("%d", ourScore), runOpts{color: ourColor, weight: ourWeight, mono: true}),
+			r(favAbbr+" ", ourAbbrStyle),
+			r(fmt.Sprintf("%d", ourScore), ourScoreStyle),
 			r("–", runOpts{mono: true}),
-			r(fmt.Sprintf("%d", theirScore), runOpts{color: theirColor, weight: theirWeight, mono: true}),
-			r(" "+oppAbbr, runOpts{color: theirColor}),
+			r(fmt.Sprintf("%d", theirScore), theirScoreStyle),
+			r(" "+oppAbbr, oppAbbrStyle),
 		}
 	}
 	return []menuet.TextRun{r(favAbbr, runOpts{})}
