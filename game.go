@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/caseymrm/menuet/v2"
@@ -198,25 +199,70 @@ func scoresFor(g Game, favTeamID string) (int, int) {
 
 // liveClock returns a compact in-progress label — used in the hidden-live
 // menubar slot where we can't reveal the score but want to convey "this game
-// is in progress, somewhere in here". Prefers ESPN's ShortDetail because it
-// formats sport-correctly ("Bot 5th" for MLB, "Q3 5:42" for NBA, "P2" for
-// NHL, "45'+2'" for soccer). Only falls back to "Q%d" when ShortDetail is
-// missing — and even then guards baseball with "<n>th" since "Q5" makes no
-// sense for an inning.
+// is in progress, somewhere in here". For baseball we use a tight "▲5" /
+// "▼5" form: caret for the half (top → up, bottom → down) and the inning
+// number. Other sports keep ESPN's ShortDetail because it's already
+// sport-correct ("Q3 5:42" for NBA, "P2" for NHL, "45'+2'" for soccer).
 func liveClock(g Game) string {
+	if isBaseball(g.LeagueKey) {
+		if c := baseballInningCaret(g.ShortDetail); c != "" {
+			return c
+		}
+		if g.Period > 0 {
+			return fmt.Sprintf("%s inn", ordinalDay(g.Period))
+		}
+	}
 	if g.ShortDetail != "" {
 		return g.ShortDetail
 	}
 	if g.Period > 0 {
-		if g.LeagueKey == "mlb" || g.LeagueKey == "college-baseball" {
-			return fmt.Sprintf("%s inn", ordinalDay(g.Period))
-		}
 		return fmt.Sprintf("Q%d", g.Period)
 	}
 	if g.Clock != "" {
 		return g.Clock
 	}
 	return "live"
+}
+
+func isBaseball(leagueKey string) bool {
+	return leagueKey == "mlb" || leagueKey == "college-baseball"
+}
+
+// baseballInningCaret parses ESPN's ShortDetail for an in-progress baseball
+// game and returns "▲<n>" for the top half, "▼<n>" for the bottom half.
+// ESPN's format is "Top 5th" / "Bot 5th" / "Bottom 5th" / "Mid 5th" / "End
+// 5th". Mid/End are between-half states (no team is batting); for those we
+// drop the caret and fall back to the surrounding logic, since neither
+// arrow direction matches.
+func baseballInningCaret(detail string) string {
+	if detail == "" {
+		return ""
+	}
+	lower := strings.ToLower(strings.TrimSpace(detail))
+	var caret string
+	switch {
+	case strings.HasPrefix(lower, "top"):
+		caret = "▲"
+	case strings.HasPrefix(lower, "bot"): // matches "Bot" and "Bottom"
+		caret = "▼"
+	default:
+		return ""
+	}
+	// Pull the first run of digits — handles "5th", "5", "10th".
+	digits := strings.Builder{}
+	started := false
+	for _, c := range lower {
+		if c >= '0' && c <= '9' {
+			digits.WriteRune(c)
+			started = true
+		} else if started {
+			break
+		}
+	}
+	if digits.Len() == 0 {
+		return ""
+	}
+	return caret + digits.String()
 }
 
 // ESPN's basic scoreboard feed has no actual end timestamp. Approximating

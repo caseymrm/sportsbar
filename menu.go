@@ -332,8 +332,14 @@ func dropdownGameSubtitle(g Game, revealed bool, now time.Time) []menuet.TextRun
 }
 
 // liveDetailLabel returns ShortDetail if ESPN supplied one (e.g. "Q3 5:42"),
-// otherwise a derived Q{N} {clock}.
+// otherwise a derived Q{N} {clock}. For baseball the caret form (▲5 / ▼5)
+// stands in for "Top 5th" / "Bot 5th" so the subtitle matches the menubar.
 func liveDetailLabel(g Game) string {
+	if isBaseball(g.LeagueKey) {
+		if c := baseballInningCaret(g.ShortDetail); c != "" {
+			return c
+		}
+	}
 	if g.ShortDetail != "" {
 		return g.ShortDetail
 	}
