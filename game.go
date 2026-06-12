@@ -196,12 +196,21 @@ func scoresFor(g Game, favTeamID string) (int, int) {
 	return g.AwayScore, g.HomeScore
 }
 
-// liveClock returns a compact in-progress label like "Q3" or "5:42" — used
-// only in the hidden-live menubar slot where we can't reveal the score but
-// want to convey "this game is in progress, somewhere in here". Prefers a
-// quarter/half label when available because it leaks less than displayClock.
+// liveClock returns a compact in-progress label — used in the hidden-live
+// menubar slot where we can't reveal the score but want to convey "this game
+// is in progress, somewhere in here". Prefers ESPN's ShortDetail because it
+// formats sport-correctly ("Bot 5th" for MLB, "Q3 5:42" for NBA, "P2" for
+// NHL, "45'+2'" for soccer). Only falls back to "Q%d" when ShortDetail is
+// missing — and even then guards baseball with "<n>th" since "Q5" makes no
+// sense for an inning.
 func liveClock(g Game) string {
+	if g.ShortDetail != "" {
+		return g.ShortDetail
+	}
 	if g.Period > 0 {
+		if g.LeagueKey == "mlb" || g.LeagueKey == "college-baseball" {
+			return fmt.Sprintf("%s inn", ordinalDay(g.Period))
+		}
 		return fmt.Sprintf("Q%d", g.Period)
 	}
 	if g.Clock != "" {
