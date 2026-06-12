@@ -550,18 +550,34 @@ func (m *Menu) favoriteTeamSubmenu(f Favorite) []menuet.MenuItem {
 	}
 	sched, fresh := m.teamSchedule(league, f.TeamID)
 
-	// Exclude games already shown at the top of the menu (live / today / just
-	// finished) so we don't repeat them.
-	visible := map[string]bool{}
-	for _, g := range m.p.FavoriteGames() {
-		visible[g.ID] = true
-	}
-
 	now := time.Now()
 	recent := []Game{}
 	upcoming := []Game{}
+
+	// Live games for this favorite always belong in Recent — even when
+	// they're also shown at the top of the menu. The schedule endpoint
+	// may or may not surface them (status depends on ESPN's per-league
+	// formatting), so we draw them from the live snapshot first and
+	// dedupe schedule entries against this list.
+	included := map[string]bool{}
+	for _, g := range m.p.FavoriteGames() {
+		if g.State == StateLive && g.InvolvesTeam(f.League, f.TeamID) {
+			recent = append(recent, g)
+			included[g.ID] = true
+		}
+	}
+
+	// Exclude *non-live* today's games (finished today, upcoming today)
+	// from the schedule loop so they don't duplicate the top-of-menu rows.
+	visible := map[string]bool{}
+	for _, g := range m.p.FavoriteGames() {
+		if !included[g.ID] {
+			visible[g.ID] = true
+		}
+	}
+
 	for _, g := range sched {
-		if visible[g.ID] {
+		if visible[g.ID] || included[g.ID] {
 			continue
 		}
 		switch g.State {
