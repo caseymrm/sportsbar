@@ -16,19 +16,28 @@ func main() {
 	poller := NewPoller(cfg)
 	menu := NewMenu(cfg, poller)
 
+	// In demo-fixture mode we install curated Lakers + Dodgers state and
+	// skip the live poller / notifier so the ESPN refresh loop can't
+	// overwrite the fixture before the snapshot is taken.
+	if fixtureMode() {
+		installFixture(cfg, poller, menu)
+	}
+
 	wg, ctx := menuet.App().GracefulShutdownHandles()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		poller.Run(ctx)
-	}()
+	if !fixtureMode() {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			poller.Run(ctx)
+		}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		RunNotifier(ctx, cfg, poller.Updates())
-	}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			RunNotifier(ctx, cfg, poller.Updates())
+		}()
+	}
 
 	wg.Add(1)
 	go func() {
