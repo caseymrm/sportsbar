@@ -152,7 +152,7 @@
           "Shadow": null
         }
       ],
-      "image": "http://127.0.0.1:60929/mlb/19.png",
+      "image": "https://a.espncdn.com/i/teamlogos/mlb/500/lad.png",
       "color": {
         "R": 0,
         "G": 0,
@@ -338,7 +338,7 @@
     {
       "type": "regular",
       "text": "Los Angeles Lakers",
-      "image": "http://127.0.0.1:60929/nba/13.png",
+      "image": "https://a.espncdn.com/i/teamlogos/nba/500/lal.png",
       "color": {
         "R": 0,
         "G": 0,
@@ -564,7 +564,7 @@
     {
       "type": "regular",
       "text": "Los Angeles Dodgers",
-      "image": "http://127.0.0.1:60929/mlb/19.png",
+      "image": "https://a.espncdn.com/i/teamlogos/mlb/500/lad.png",
       "color": {
         "R": 0,
         "G": 0,

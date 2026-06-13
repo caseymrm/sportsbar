@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -43,7 +44,14 @@ func NewMenu(cfg *Config, p *Poller) *Menu {
 		scheduleCache:    make(map[string]teamSchedule),
 		scheduleCacheTTL: time.Hour,
 	}
-	m.logos = NewLogoServer(m.teams)
+	// Skip the local in-process logo server when the binary is running in
+	// menuet's snapshot mode — those URLs only resolve inside this process,
+	// so a JSON snapshot captured for menuet.app would point at a dead host
+	// (http://127.0.0.1:<random>/...). With logos == nil, the logo helpers
+	// fall back to ESPN's canonical URLs which are publicly fetchable.
+	if os.Getenv("MENUET_SNAPSHOT_PATH") == "" {
+		m.logos = NewLogoServer(m.teams)
+	}
 	// Eagerly prime team catalogs for leagues with favorites so logos render
 	// on first menu open instead of waiting until the user opens the picker.
 	for _, f := range cfg.Favorites() {
@@ -52,6 +60,27 @@ func NewMenu(cfg *Config, p *Poller) *Menu {
 		}
 	}
 	return m
+}
+
+// teamLogoURL returns a stable URL for the team's logo. Prefers the local
+// white-disc composite served by LogoServer when it's running (live menu
+// rendering); falls back to ESPN's canonical CDN URL when the local server
+// isn't available (snapshot mode, or before the catalog has loaded). Both
+// kinds of URL can be fed straight to menuet.Regular.Image.
+func (m *Menu) teamLogoURL(leagueKey, teamID string) string {
+	if u := m.logos.URL(leagueKey, teamID); u != "" {
+		return u
+	}
+	league, ok := LeagueByKey(leagueKey)
+	if !ok {
+		return ""
+	}
+	for _, t := range m.teams(league) {
+		if t.ID == teamID {
+			return t.Logo()
+		}
+	}
+	return ""
 }
 
 // favoriteLogoURL returns the default (transparent-background) logo URL for
@@ -64,8 +93,8 @@ func (m *Menu) favoriteLogoURL(f Favorite) string {
 // Goes through the local composite server which puts the team logo on a
 // white disc — that's the only way to guarantee readability against
 // translucent system menus, which can pick up any color from the wallpaper
-// behind them. If the server failed to bind, falls back to ESPN's "dark"
-// variant in dark mode or the default logo in light mode.
+// behind them. If the server isn't running (snapshot mode) or hasn't bound,
+// falls back to ESPN's appearance-appropriate variant.
 func (m *Menu) favoriteLogoForMenuURL(f Favorite) string {
 	if u := m.logos.URL(f.League, f.TeamID); u != "" {
 		return u
@@ -253,11 +282,10 @@ func (m *Menu) gameItem(g Game, now time.Time, withLiveBadge bool) menuet.MenuIt
 		Children: func() []menuet.MenuItem { return m.gameSubmenu(gid) },
 	}
 	if favTeamID != "" {
-		// 20px logo via the local logo server so it gets the white-disc
-		// composite that survives translucent menu backgrounds.
-		if u := m.logos.URL(g.LeagueKey, favTeamID); u != "" {
-			item.Image = u
-		}
+		// 20px logo. Live menu: local white-disc composite that survives the
+		// translucent menu background. Snapshot mode: ESPN canonical URL so
+		// menuet.app can fetch it.
+		item.Image = m.teamLogoURL(g.LeagueKey, favTeamID)
 	}
 	return item
 }
@@ -448,9 +476,7 @@ func (m *Menu) teamScoreRow(g Game, team EspnTeam, score int, leader bool) menue
 		},
 		Clicked: func() {},
 	}
-	if u := m.logos.URL(g.LeagueKey, team.ID); u != "" {
-		row.Image = u
-	}
+	row.Image = m.teamLogoURL(g.LeagueKey, team.ID)
 	return row
 }
 
