@@ -1,0 +1,2294 @@
+{
+  "schema": "menuet-snapshot/v1",
+  "state": {
+    "Title": "",
+    "Runs": [
+      {
+        "Text": "LAD–CHW",
+        "Color": {
+          "R": 0,
+          "G": 0,
+          "B": 0,
+          "A": 0,
+          "Semantic": "secondaryLabelColor"
+        },
+        "FontSize": 0,
+        "FontWeight": 0,
+        "Monospaced": false,
+        "Badge": false,
+        "Underline": false,
+        "UnderlineColor": {
+          "R": 0,
+          "G": 0,
+          "B": 0,
+          "A": 0
+        },
+        "Strikethrough": false,
+        "StrikethroughColor": {
+          "R": 0,
+          "G": 0,
+          "B": 0,
+          "A": 0
+        },
+        "Background": {
+          "R": 0,
+          "G": 0,
+          "B": 0,
+          "A": 0
+        },
+        "Shadow": null
+      },
+      {
+        "Text": " ended 6h",
+        "Color": {
+          "R": 0,
+          "G": 0,
+          "B": 0,
+          "A": 0,
+          "Semantic": "tertiaryLabelColor"
+        },
+        "FontSize": 0,
+        "FontWeight": 0,
+        "Monospaced": false,
+        "Badge": false,
+        "Underline": false,
+        "UnderlineColor": {
+          "R": 0,
+          "G": 0,
+          "B": 0,
+          "A": 0
+        },
+        "Strikethrough": false,
+        "StrikethroughColor": {
+          "R": 0,
+          "G": 0,
+          "B": 0,
+          "A": 0
+        },
+        "Background": {
+          "R": 0,
+          "G": 0,
+          "B": 0,
+          "A": 0
+        },
+        "Shadow": null
+      }
+    ],
+    "Image": "https://a.espncdn.com/i/teamlogos/mlb/500/lad.png"
+  },
+  "items": [
+    {
+      "type": "regular",
+      "runs": [
+        {
+          "Text": "LAD @ CHW",
+          "Color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0,
+            "Semantic": "secondaryLabelColor"
+          },
+          "FontSize": 0,
+          "FontWeight": 0,
+          "Monospaced": false,
+          "Badge": false,
+          "Underline": false,
+          "UnderlineColor": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "Strikethrough": false,
+          "StrikethroughColor": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "Background": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "Shadow": null
+        }
+      ],
+      "subtitle": [
+        {
+          "Text": "MLB · Final · reveal score",
+          "Color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "FontSize": 0,
+          "FontWeight": 0,
+          "Monospaced": false,
+          "Badge": false,
+          "Underline": false,
+          "UnderlineColor": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "Strikethrough": false,
+          "StrikethroughColor": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "Background": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "Shadow": null
+        }
+      ],
+      "image": "http://127.0.0.1:60929/mlb/19.png",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "LAD @ CHW",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0.4,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "  MLB",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "tertiaryLabelColor"
+              },
+              "FontSize": 11,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "LAD @ CHW · ended 6h",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "secondaryLabelColor"
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "separator",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Show scores",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "separator",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Open in ESPN",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "separator",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      }
+    },
+    {
+      "type": "regular",
+      "text": "Los Angeles Lakers",
+      "image": "http://127.0.0.1:60929/nba/13.png",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Loading schedule…",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "separator",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Team settings",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "text": "Show scores by default — default (off)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Use global default (off)",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Always on for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Always off for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            },
+            {
+              "type": "regular",
+              "text": "Notify when game starts — default (on)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Use global default (on)",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Always on for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Always off for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            },
+            {
+              "type": "regular",
+              "text": "Notify when game ends — default (on)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Use global default (on)",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Always on for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Always off for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            },
+            {
+              "type": "regular",
+              "text": "Notify on lead change — default (on)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Use global default (on)",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Always on for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Always off for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "Remove from favorites",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Los Angeles Dodgers",
+      "image": "http://127.0.0.1:60929/mlb/19.png",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "Loading schedule…",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "separator",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Team settings",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "text": "Show scores by default — default (off)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Use global default (off)",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Always on for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Always off for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            },
+            {
+              "type": "regular",
+              "text": "Notify when game starts — default (on)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Use global default (on)",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Always on for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Always off for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            },
+            {
+              "type": "regular",
+              "text": "Notify when game ends — default (on)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Use global default (on)",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Always on for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Always off for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            },
+            {
+              "type": "regular",
+              "text": "Notify on lead change — default (on)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Use global default (on)",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Always on for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Always off for this team",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "Remove from favorites",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        }
+      ]
+    },
+    {
+      "type": "regular",
+      "text": "Add another favorite",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "text": "NFL",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "search",
+              "text": "Filter NFL teams",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Loading teams…",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "NBA",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "search",
+              "text": "Filter NBA teams",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Atlanta Hawks",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Boston Celtics",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Brooklyn Nets",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Charlotte Hornets",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Chicago Bulls",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Cleveland Cavaliers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Dallas Mavericks",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Denver Nuggets",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Detroit Pistons",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Golden State Warriors",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Houston Rockets",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Indiana Pacers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "LA Clippers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Los Angeles Lakers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Memphis Grizzlies",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Miami Heat",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Milwaukee Bucks",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Minnesota Timberwolves",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "New Orleans Pelicans",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "New York Knicks",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Oklahoma City Thunder",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Orlando Magic",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Philadelphia 76ers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Phoenix Suns",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Portland Trail Blazers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Sacramento Kings",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "San Antonio Spurs",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Toronto Raptors",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Utah Jazz",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Washington Wizards",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "MLB",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "search",
+              "text": "Filter MLB teams",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Arizona Diamondbacks",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Athletics",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Atlanta Braves",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Baltimore Orioles",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Boston Red Sox",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Chicago Cubs",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Chicago White Sox",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Cincinnati Reds",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Cleveland Guardians",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Colorado Rockies",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Detroit Tigers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Houston Astros",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Kansas City Royals",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Los Angeles Angels",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Los Angeles Dodgers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "state": true
+                },
+                {
+                  "type": "regular",
+                  "text": "Miami Marlins",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Milwaukee Brewers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Minnesota Twins",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "New York Mets",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "New York Yankees",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Philadelphia Phillies",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Pittsburgh Pirates",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "San Diego Padres",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "San Francisco Giants",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Seattle Mariners",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "St. Louis Cardinals",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Tampa Bay Rays",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Texas Rangers",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Toronto Blue Jays",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                },
+                {
+                  "type": "regular",
+                  "text": "Washington Nationals",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "regular",
+          "text": "NHL",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "search",
+              "text": "Filter NHL teams",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "regular",
+                  "text": "Loading teams…",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "separator",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      }
+    },
+    {
+      "type": "regular",
+      "text": "Settings",
+      "color": {
+        "R": 0,
+        "G": 0,
+        "B": 0,
+        "A": 0
+      },
+      "children": [
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "SCORES",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "tertiaryLabelColor"
+              },
+              "FontSize": 11,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Show scores by default",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "NOTIFICATIONS",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "tertiaryLabelColor"
+              },
+              "FontSize": 11,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "text": "Game starts",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "state": true
+        },
+        {
+          "type": "regular",
+          "text": "Game ends",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "state": true
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Lead changes",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "  revealed games only",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "tertiaryLabelColor"
+              },
+              "FontSize": 11,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "state": true
+        },
+        {
+          "type": "separator",
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          }
+        },
+        {
+          "type": "regular",
+          "runs": [
+            {
+              "Text": "Leagues",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "FontSize": 0,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            },
+            {
+              "Text": "  4 of 38 enabled",
+              "Color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0,
+                "Semantic": "tertiaryLabelColor"
+              },
+              "FontSize": 11,
+              "FontWeight": 0,
+              "Monospaced": false,
+              "Badge": false,
+              "Underline": false,
+              "UnderlineColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Strikethrough": false,
+              "StrikethroughColor": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Background": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "Shadow": null
+            }
+          ],
+          "color": {
+            "R": 0,
+            "G": 0,
+            "B": 0,
+            "A": 0
+          },
+          "children": [
+            {
+              "type": "regular",
+              "text": "US Pro (4/5)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "search",
+                  "text": "Filter leagues",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "children": [
+                    {
+                      "type": "regular",
+                      "text": "NFL",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      },
+                      "state": true
+                    },
+                    {
+                      "type": "regular",
+                      "text": "NBA",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      },
+                      "state": true
+                    },
+                    {
+                      "type": "regular",
+                      "text": "WNBA",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "MLB",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      },
+                      "state": true
+                    },
+                    {
+                      "type": "regular",
+                      "text": "NHL",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      },
+                      "state": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "regular",
+              "text": "College (0/6)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "search",
+                  "text": "Filter leagues",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "children": [
+                    {
+                      "type": "regular",
+                      "text": "NCAA Football",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "NCAA Men's Basketball",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "NCAA Women's Basketball",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "NCAA Baseball",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "NCAA Men's Hockey",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "NCAA Men's Lacrosse",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "regular",
+              "text": "International (0/27)",
+              "color": {
+                "R": 0,
+                "G": 0,
+                "B": 0,
+                "A": 0
+              },
+              "children": [
+                {
+                  "type": "search",
+                  "text": "Filter leagues",
+                  "color": {
+                    "R": 0,
+                    "G": 0,
+                    "B": 0,
+                    "A": 0
+                  },
+                  "children": [
+                    {
+                      "type": "regular",
+                      "text": "Premier League",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "La Liga",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Serie A",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Bundesliga",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Ligue 1",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Eredivisie",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Primeira Liga",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "MLS",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Liga MX",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "NWSL",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Brazilian Série A",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Argentine Liga Profesional",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "AFL",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "FA Cup",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Carabao Cup",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Copa del Rey",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "UEFA Champions League",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "UEFA Europa League",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Concacaf Champions Cup",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Copa Libertadores",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "AFC Champions League Elite",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "FIFA World Cup",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "UEFA European Championship",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "UEFA Nations League",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Concacaf Gold Cup",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "Copa América",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    },
+                    {
+                      "type": "regular",
+                      "text": "FIFA Confederations Cup",
+                      "color": {
+                        "R": 0,
+                        "G": 0,
+                        "B": 0,
+                        "A": 0
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
