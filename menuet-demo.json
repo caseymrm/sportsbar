@@ -181,7 +181,7 @@
           "G": 0,
           "B": 0,
           "A": 0,
-          "Semantic": "tertiaryLabelColor"
+          "Semantic": "secondaryLabelColor"
         },
         "FontSize": 11,
         "FontWeight": 0,
@@ -1937,7 +1937,7 @@
               "Shadow": null
             },
             {
-              "Text": "   WED",
+              "Text": "   THU",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -2657,7 +2657,7 @@
               "Shadow": null
             },
             {
-              "Text": "   MON",
+              "Text": "   TUE",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -2783,7 +2783,7 @@
               "type": "regular",
               "runs": [
                 {
-                  "Text": "PHX @ LAL · was Mon",
+                  "Text": "PHX @ LAL · was Tue",
                   "Color": {
                     "R": 0,
                     "G": 0,
@@ -2964,7 +2964,7 @@
               "Shadow": null
             },
             {
-              "Text": "   Tue 1:44am",
+              "Text": "   Tue 3:09pm",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -3206,7 +3206,7 @@
               "Shadow": null
             },
             {
-              "Text": "   Wed 10:44pm",
+              "Text": "   Thu 12:09pm",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -3332,7 +3332,7 @@
               "type": "regular",
               "runs": [
                 {
-                  "Text": "LAC @ LAL · on Wed",
+                  "Text": "LAC @ LAL · on Thu",
                   "Color": {
                     "R": 0,
                     "G": 0,
@@ -4002,7 +4002,7 @@
               "Shadow": null
             },
             {
-              "Text": "   SAT",
+              "Text": "   SUN",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -4798,7 +4798,7 @@
               "Shadow": null
             },
             {
-              "Text": "   FRI",
+              "Text": "   SAT",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -5513,7 +5513,7 @@
               "Shadow": null
             },
             {
-              "Text": "   THU",
+              "Text": "   FRI",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -6267,7 +6267,7 @@
               "Shadow": null
             },
             {
-              "Text": "   WED",
+              "Text": "   THU",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -6393,7 +6393,7 @@
               "type": "regular",
               "runs": [
                 {
-                  "Text": "SF @ LAD · was Wed",
+                  "Text": "SF @ LAD · was Thu",
                   "Color": {
                     "R": 0,
                     "G": 0,
@@ -6574,7 +6574,7 @@
               "Shadow": null
             },
             {
-              "Text": "   Sun 2:44pm",
+              "Text": "   Mon 4:09am",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -6816,7 +6816,7 @@
               "Shadow": null
             },
             {
-              "Text": "   Mon 2:44pm",
+              "Text": "   Tue 4:09am",
               "Color": {
                 "R": 0,
                 "G": 0,
@@ -6942,7 +6942,7 @@
               "type": "regular",
               "runs": [
                 {
-                  "Text": "LAD @ SF · on Mon",
+                  "Text": "LAD @ SF · on Tue",
                   "Color": {
                     "R": 0,
                     "G": 0,
