@@ -160,7 +160,8 @@ func (m *Menu) Title() *menuet.MenuState {
 
 	runs := top.TitleRuns(favTeamID, revealed, now)
 	if extra := len(games) - 1; extra > 0 {
-		runs = append(runs, r(fmt.Sprintf("  +%d", extra), ter11))
+		// sec11 not ter11 — tertiary is too dark to read in the menubar.
+		runs = append(runs, r(fmt.Sprintf("  +%d", extra), sec11))
 	}
 
 	state := &menuet.MenuState{Runs: runs}

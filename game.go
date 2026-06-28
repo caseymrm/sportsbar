@@ -138,9 +138,11 @@ func (g Game) TitleRuns(favTeamID string, revealed bool, now time.Time) []menuet
 
 	case StateFinal:
 		if !revealed {
+			// Menubar avoids LabelTertiary (too dark against the status bar) —
+			// the "ended Nh" time uses secondary, same as the matchup.
 			return []menuet.TextRun{
 				r(favAbbr+"–"+oppAbbr, sec),
-				r(" "+pastWithVerb("ended", g.endTimeEstimate(), now), ter),
+				r(" "+pastWithVerb("ended", g.endTimeEstimate(), now), sec),
 			}
 		}
 		ourScore, theirScore := scoresFor(g, favTeamID)

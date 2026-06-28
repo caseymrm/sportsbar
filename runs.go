@@ -77,6 +77,12 @@ var (
 	monoTerTiny  = runOpts{color: menuet.LabelTertiary, mono: true, size: 10}
 	ter11        = runOpts{color: menuet.LabelTertiary, size: 11}
 
+	// sec11 is the menubar-safe equivalent of ter11. The menubar renders
+	// LabelTertiary too dark to read against its background (that color is
+	// tuned for menu dropdowns, not the status bar), so menubar-title runs
+	// use secondary as their dimmest tone instead of tertiary.
+	sec11 = runOpts{color: menuet.LabelSecondary, size: 11}
+
 	// Trailing team in a finished or live game. The original design called
 	// for LabelSecondary on the loser, but at small sizes that grey reads as
 	// "disabled" and is hard to scan. We keep the loser at LabelPrimary
