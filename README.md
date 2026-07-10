@@ -15,7 +15,7 @@ A macOS menubar app for sports scores across 32 leagues (US Pro, College, Intern
 
 **[Download the latest release](https://github.com/caseymrm/sportsbar/releases/latest/download/Sportsbar.zip)**, unzip, drag `Sportsbar.app` to `/Applications`, and open it.
 
-First launch: macOS may warn about an unidentified developer until the app is notarized. Right-click `Sportsbar.app` → Open → confirm. Subsequent launches work normally.
+Releases are signed and notarized (since v0.2.0), so it opens without any Gatekeeper warning.
 
 ### Build from source
 
