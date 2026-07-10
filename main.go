@@ -9,7 +9,7 @@ import (
 // Version must match a GitHub release tag name exactly — menuet's auto-update
 // does a string compare against tag_name. menuet's ecosystem convention is
 // "v"-prefixed (whyawake "v0.9", notafan "v1.0.0"); matching that.
-const Version = "v0.1.0"
+const Version = "v0.2.0"
 
 func main() {
 	cfg := LoadConfig()
