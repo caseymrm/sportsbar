@@ -2,11 +2,10 @@ APP=Sportsbar
 IDENTIFIER=sportsbar.caseymrm.github.com
 REPO=caseymrm/sportsbar
 
-# Codesigning identity. Defaults to ad-hoc ("-") so local builds and the
-# release zip "just work" without an Apple Developer account. Override for
-# real releases:
-#   make IDENTITY="Developer ID Application: Casey Muller (TEAMID)" zip
-IDENTITY ?= -
+# Codesigning identity. Defaults to the Developer ID cert so release zips
+# are notarizable; anyone without the cert can still build ad-hoc:
+#   make IDENTITY=- zip
+IDENTITY ?= Developer ID Application: Casey Muller (AZGE7WP274)
 
 # menuet ships a shared bundling Makefile (menuet.mk) that handles plist
 # generation, codesign, zip-for-release, etc. Find it via the Go module cache
@@ -25,13 +24,5 @@ $(BINARY): $(SOURCES)
 	lipo -create -output $(BINARY) $(BINARY).arm64 $(BINARY).amd64
 	rm -f $(BINARY).arm64 $(BINARY).amd64
 
-# Notarize the signed zip and staple the result. Requires:
-#   - Developer ID Application certificate in keychain (real IDENTITY, not "-")
-#   - One-time setup: xcrun notarytool store-credentials NotaryProfile \
-#                     --apple-id you@example.com --team-id TEAMID --password APP_SPEC_PW
-.PHONY: notarize
-notarize: $(ZIPFILE)
-	xcrun notarytool submit $(ZIPFILE) --keychain-profile NotaryProfile --wait
-	xcrun stapler staple $(ESCAPED_APP).app
-	rm -f $(ZIPFILE)
-	zip -r $(ZIPFILE) $(ESCAPED_APP).app
+# notarize comes from menuet.mk (v2.10.4+): submits via the AC_NOTARY
+# keychain profile, staples, and re-zips.

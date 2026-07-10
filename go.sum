@@ -12,3 +12,5 @@ github.com/caseymrm/menuet/v2 v2.9.0 h1:vtnBSvdg6Y5zxpORMQizQ7Lzz01K4XcEN4grqgnY
 github.com/caseymrm/menuet/v2 v2.9.0/go.mod h1:fw/xps1icldZXguIGgsokmkVgGd51N1h+X6evRuPv8s=
 github.com/caseymrm/menuet/v2 v2.10.0 h1:MEaqxSWOEMRrwcZuSpAhnUCaWFev61E1q1H+jhJzYz8=
 github.com/caseymrm/menuet/v2 v2.10.0/go.mod h1:fw/xps1icldZXguIGgsokmkVgGd51N1h+X6evRuPv8s=
+github.com/caseymrm/menuet/v2 v2.10.4 h1:Cb1NpHFeC0FJb+35rgGzVpDmabFJODwl660rqeBX05c=
+github.com/caseymrm/menuet/v2 v2.10.4/go.mod h1:fw/xps1icldZXguIGgsokmkVgGd51N1h+X6evRuPv8s=
