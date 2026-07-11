@@ -6,12 +6,23 @@ import (
 	"time"
 )
 
-// fixtureMode reports whether the demo fixture should be installed. Gated by
-// MENUET_DEMO_FIXTURE — typically set alongside MENUET_SNAPSHOT_PATH so the
-// snapshot for menuet.app has a curated, showy menu state regardless of when
-// it's regenerated.
+// fixtureMode reports whether the demo fixture should be installed.
+//
+// Snapshot mode implies fixture mode: the menuet-demo.json snapshot exists
+// solely for the menuet.app showcase, which wants the curated menu, so a
+// bare `make web-preview` must not silently capture cold-boot state (an
+// easy mistake that guts the showcase mock). MENUET_DEMO_FIXTURE=0 opts
+// out for the rare real-state snapshot; any other non-empty value forces
+// the fixture in a normal (non-snapshot) run.
 func fixtureMode() bool {
-	return os.Getenv("MENUET_DEMO_FIXTURE") != ""
+	switch os.Getenv("MENUET_DEMO_FIXTURE") {
+	case "0":
+		return false
+	case "":
+		return os.Getenv("MENUET_SNAPSHOT_PATH") != ""
+	default:
+		return true
+	}
 }
 
 // installFixture overwrites the live config + poller with a curated set of
